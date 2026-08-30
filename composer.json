@@ -1,0 +1,34 @@
+{
+    "name": "ppcharlier/statamic-editor-api",
+    "description": "Write API for Statamic with drafts & revisions, built for mobile editors.",
+    "license": "proprietary",
+    "type": "statamic-addon",
+    "require": {
+        "php": "^8.3",
+        "statamic/cms": "^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0 || ^10.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0"
+    },
+    "autoload": {
+        "psr-4": { "Ppcharlier\\StatamicEditorApi\\": "src" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Ppcharlier\\StatamicEditorApi\\Tests\\": "tests" }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Editor API",
+            "description": "Write API for Statamic with drafts & revisions"
+        },
+        "laravel": {
+            "providers": ["Ppcharlier\\StatamicEditorApi\\ServiceProvider"]
+        }
+    },
+    "config": {
+        "allow-plugins": { "pestphp/pest-plugin": true, "pixelfear/composer-dist-plugin": true }
+    },
+    "minimum-stability": "stable"
+}

@@ -1,1 +1,5 @@
 .worktrees/
+/vendor
+composer.lock
+.phpunit.result.cache
+tests/__fixtures__
