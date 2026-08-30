@@ -5,6 +5,7 @@ use Ppcharlier\StatamicEditorApi\Http\Auth\MeController;
 use Ppcharlier\StatamicEditorApi\Http\Auth\TokensController;
 use Ppcharlier\StatamicEditorApi\Http\Blueprints\BlueprintsController;
 use Ppcharlier\StatamicEditorApi\Http\Config\ConfigController;
+use Ppcharlier\StatamicEditorApi\Http\Entries\EntriesController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 
 Route::post('auth/tokens', [TokensController::class, 'store'])
@@ -22,6 +23,9 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
         ->middleware('editor-api.can:entries,view,collection')->name('blueprints.index');
     Route::get('collections/{collection}/blueprints/{blueprint}', [BlueprintsController::class, 'show'])
         ->middleware('editor-api.can:entries,view,collection')->name('blueprints.show');
+
+    Route::get('collections/{collection}/entries', [EntriesController::class, 'index'])
+        ->middleware('editor-api.can:entries,view,collection')->name('entries.index');
 });
 
 if (app()->runningUnitTests()) {
