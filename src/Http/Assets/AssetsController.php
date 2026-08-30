@@ -123,6 +123,18 @@ final class AssetsController
         return response()->json(['data' => AssetResource::toArray($container->asset($asset->path()))]);
     }
 
+    public function destroy(Request $request, $container, string $path)
+    {
+        ResourceGate::assetContainer($handle = $container->handle());
+        Guard::check($request->user(), PermissionMap::assets('delete', $handle));
+
+        $asset = $this->findAsset($container, $path);
+
+        $asset->delete();
+
+        return response()->noContent();
+    }
+
     private function rejectUnknownFields(array $data, $blueprint): void
     {
         $known = $blueprint->fields()->all()->keys()->all();
