@@ -177,6 +177,20 @@ final class EntriesController
         return response()->json(['data' => EntryResource::detail($this->findEntry($id))]);
     }
 
+    public function destroy(Request $request, string $id)
+    {
+        $entry = $this->findEntry($id);
+        Guard::check($request->user(), PermissionMap::entries('delete', $entry->collectionHandle()));
+
+        if ($entry->revisionsEnabled()) {
+            $entry->deleteWorkingCopy();
+        }
+
+        $entry->delete();
+
+        return response()->noContent();
+    }
+
     private function guardAgainstConflict(Request $request, $entry): void
     {
         if (! $header = $request->header('X-Base-Modified')) {
