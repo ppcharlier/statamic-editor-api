@@ -116,6 +116,12 @@ it('does not persist data when a combined operation is refused', function () {
     expect(AssetContainer::findByHandle('uploads')->asset('photo.jpg')->get('alt'))->toBeNull();
 });
 
+it('rejects a percent-encoded traversal in folder', function () {
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/assets/uploads/photo.jpg', ['folder' => '%2e%2e/secrets'])
+        ->assertStatus(422);
+});
+
 it('rejects an unknown data field', function () {
     $this->withToken($this->token)
         ->patchJson('/api/editor/v1/assets/uploads/photo.jpg', ['data' => ['atl' => 'typo']])

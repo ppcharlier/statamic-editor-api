@@ -85,6 +85,15 @@ it('rejects folder traversal', function () {
         ->assertStatus(422);
 });
 
+it('rejects a percent-encoded folder traversal', function () {
+    $this->withToken($this->token)
+        ->post('/api/editor/v1/assets/uploads', [
+            'file' => UploadedFile::fake()->image('x.jpg'),
+            'folder' => '%2e%2e/secrets',
+        ], ['Accept' => 'application/json'])
+        ->assertStatus(422);
+});
+
 it('403s without the upload permission', function () {
     $token = $this->makeTokenWithPermissions(['view uploads assets']);
 

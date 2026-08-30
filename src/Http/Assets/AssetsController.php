@@ -4,10 +4,10 @@ namespace Ppcharlier\StatamicEditorApi\Http\Assets;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
+use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 
 final class AssetsController
 {
@@ -137,16 +137,6 @@ final class AssetsController
 
     private function rejectUnknownFields(array $data, $blueprint): void
     {
-        $known = $blueprint->fields()->all()->keys()->all();
-        $unknown = array_values(array_diff(array_keys($data), $known));
-
-        if ($unknown !== []) {
-            throw new ApiException(
-                'unknown_field',
-                'Unknown fields: '.implode(', ', $unknown).'.',
-                422,
-                collect($unknown)->mapWithKeys(fn ($f) => [$f => ['This field is not in the blueprint.']])->all(),
-            );
-        }
+        UnknownFields::reject($data, $blueprint->fields()->all()->keys()->all());
     }
 }

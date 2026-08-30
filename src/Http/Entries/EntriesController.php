@@ -9,6 +9,7 @@ use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteGuard;
+use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Site;
 use Statamic\Rules\Slug;
@@ -234,16 +235,6 @@ final class EntriesController
             );
         }
 
-        $known = $blueprint->fields()->all()->keys()->all();
-        $unknown = array_values(array_diff(array_keys($data), $known));
-
-        if ($unknown !== []) {
-            throw new ApiException(
-                'unknown_field',
-                'Unknown fields: '.implode(', ', $unknown).'.',
-                422,
-                collect($unknown)->mapWithKeys(fn ($f) => [$f => ['This field is not in the blueprint.']])->all(),
-            );
-        }
+        UnknownFields::reject($data, $blueprint->fields()->all()->keys()->all());
     }
 }
