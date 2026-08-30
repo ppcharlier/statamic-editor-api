@@ -40,6 +40,7 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::post('entries/{id}/revisions/{revision}/restore', [\Ppcharlier\StatamicEditorApi\Http\Revisions\RevisionsController::class, 'restore'])->name('revisions.restore');
 
     Route::get('assets/{asset_container}', [\Ppcharlier\StatamicEditorApi\Http\Assets\AssetsController::class, 'index'])->name('assets.index');
+    Route::post('assets/{asset_container}', [\Ppcharlier\StatamicEditorApi\Http\Assets\AssetsController::class, 'store'])->name('assets.store');
 });
 
 if (app()->runningUnitTests()) {

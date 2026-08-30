@@ -42,4 +42,27 @@ final class AssetsController
             ],
         ]);
     }
+
+    public function store(Request $request, $container)
+    {
+        ResourceGate::assetContainer($handle = $container->handle());
+        Guard::check($request->user(), PermissionMap::assets('upload', $handle));
+
+        $request->validate([
+            'file' => array_merge(['required', 'file', new \Statamic\Rules\AllowedFile], $container->validationRules()),
+            'folder' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $rawFolder = trim($request->input('folder', ''), '/');
+        $this->rejectTraversal($rawFolder);
+
+        $file = $request->file('file');
+        $basename = \Statamic\Assets\AssetUploader::getSafeFilename($file->getClientOriginalName());
+        $folder = $rawFolder !== '' ? \Statamic\Assets\AssetUploader::getSafePath($rawFolder) : '';
+        $path = ltrim(($folder !== '' ? $folder.'/' : '').$basename, '/');
+
+        $asset = $container->makeAsset($path)->upload($file);
+
+        return response()->json(['data' => AssetResource::toArray($asset)], 201);
+    }
 }
