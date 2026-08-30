@@ -5,4 +5,4 @@ use Ppcharlier\StatamicEditorApi\Http\Errors\ApiError;
 
 Route::get('ping', fn () => response()->json(['data' => ['pong' => true]]))->name('ping');
 
-Route::fallback(fn () => ApiError::response('not_found', 'Not found.', 404));
+Route::any('{any}', fn () => ApiError::response('not_found', 'Not found.', 404))->where('any', '.*');
