@@ -26,6 +26,8 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
 
     Route::get('collections/{collection}/entries', [EntriesController::class, 'index'])
         ->middleware('editor-api.can:entries,view,collection')->name('entries.index');
+
+    Route::get('entries/{id}', [EntriesController::class, 'show'])->name('entries.show');
 });
 
 if (app()->runningUnitTests()) {

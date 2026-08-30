@@ -5,7 +5,6 @@ namespace Ppcharlier\StatamicEditorApi\Permissions;
 use Closure;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
-use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 
 final class EnsurePermission
 {
@@ -20,11 +19,7 @@ final class EnsurePermission
             default => throw new InvalidArgumentException("Unknown permission area [{$area}]."),
         };
 
-        $user = $request->user();
-
-        if (! $user->isSuper() && ! $user->hasPermission($permission)) {
-            throw new ApiException('forbidden', "Missing permission: {$permission}.", 403);
-        }
+        Guard::check($request->user(), $permission);
 
         return $next($request);
     }
