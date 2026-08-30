@@ -27,3 +27,10 @@ it('treats an array as a handle whitelist', function () {
 it('defaults to disabled for unknown resources', function () {
     expect(ResourceConfig::enabled('unknown-thing'))->toBeFalse();
 });
+
+it('treats an empty whitelist as disabled', function () {
+    config()->set('statamic.editor-api.resources.collections', []);
+
+    expect(ResourceConfig::enabled('collections'))->toBeFalse()
+        ->and(ResourceConfig::enabled('collections', 'articles'))->toBeFalse();
+});

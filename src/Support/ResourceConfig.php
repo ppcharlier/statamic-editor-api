@@ -12,7 +12,7 @@ final class ResourceConfig
             return true;
         }
 
-        if (! is_array($value)) {
+        if (! is_array($value) || $value === []) {
             return false;
         }
 
