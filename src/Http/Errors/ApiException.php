@@ -25,11 +25,11 @@ class ApiException extends Exception
     /**
      * Laravel's routing pipeline (Illuminate\Routing\Pipeline::handleException()) converts
      * exceptions thrown by route middleware into a response via the app's exception handler
-     * *before* they can propagate as a real PHP exception to an outer middleware's try/catch —
-     * so HandleApiErrors's own catch (ApiException $e) block never sees exceptions thrown by
-     * a downstream middleware such as AuthenticateEditorApi. Defining render() here is Laravel's
-     * documented hook for a custom exception to control its own HTTP response regardless of
-     * which layer of the middleware stack threw it.
+     * *before* they can propagate as a real PHP exception to any outer try/catch — including
+     * one thrown by a downstream middleware such as AuthenticateEditorApi. Defining render()
+     * here is Laravel's documented hook for a custom exception to control its own HTTP response
+     * regardless of which layer of the middleware stack threw it, and it takes priority over any
+     * type-based renderable callback registered in ServiceProvider::bootAddon().
      */
     public function render(Request $request): JsonResponse
     {
