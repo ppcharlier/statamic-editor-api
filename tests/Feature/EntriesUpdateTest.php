@@ -101,3 +101,21 @@ it('422s an unparseable date', function () {
         ->assertJson(['error' => ['code' => 'validation_failed']])
         ->assertJsonStructure(['error' => ['errors' => ['date']]]);
 });
+
+it('rejects data.slug as a meta handle, not a data field', function () {
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->published->id(), [
+            'data' => ['title' => 'X', 'slug' => 'sournois'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'unknown_field']])
+        ->assertJsonStructure(['error' => ['errors' => ['slug']]]);
+});
+
+it('rejects data.date as a meta handle, not a data field', function () {
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->published->id(), [
+            'data' => ['title' => 'X', 'date' => '2026-01-01T00:00:00Z'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'unknown_field']])
+        ->assertJsonStructure(['error' => ['errors' => ['date']]]);
+});

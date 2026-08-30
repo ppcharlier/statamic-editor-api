@@ -3,6 +3,8 @@
 namespace Ppcharlier\StatamicEditorApi\Http\Entries;
 
 use Carbon\CarbonInterface;
+use Illuminate\Support\Arr;
+use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 
 final class EntryResource
 {
@@ -25,9 +27,15 @@ final class EntryResource
     {
         $working = $entry->fromWorkingCopy();
 
+        // Only surface blueprint field data, minus the meta handles (slug, date) that
+        // are already exposed as top-level params. This keeps internal bookkeeping keys
+        // (e.g. updated_by, updated_at) out of the response, so GET data is always safe
+        // to echo straight back into PATCH data.
+        $allowed = $working->blueprint()->fields()->all()->keys()->diff(MetaFields::HANDLES)->all();
+
         return array_merge(self::summary($entry), [
             'blueprint' => $working->blueprint()->handle(),
-            'data' => $working->data()->all(),
+            'data' => Arr::only($working->data()->all(), $allowed),
         ]);
     }
 

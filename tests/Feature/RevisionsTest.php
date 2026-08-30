@@ -93,3 +93,68 @@ it('403s restore without the publish permission', function () {
         ->postJson("/api/editor/v1/entries/{$id}/revisions/{$revisions[0]['id']}/restore")
         ->assertStatus(403);
 });
+
+it('reflects a PATCH in the working copy after a restore, without touching live', function () {
+    $id = entryWithTwoPublishedVersions($this);
+    $revisions = $this->withToken($this->token)->getJson("/api/editor/v1/entries/{$id}/revisions")->json('data');
+    $v1 = collect($revisions)->firstWhere('message', 'Publie V1');
+
+    $this->travel(1)->minutes();
+    $this->withToken($this->token)
+        ->postJson("/api/editor/v1/entries/{$id}/revisions/{$v1['id']}/restore")
+        ->assertOk()
+        ->assertJsonPath('data.data.title', 'V1');
+
+    $this->travel(1)->minutes();
+    $response = $this->withToken($this->token)
+        ->patchJson("/api/editor/v1/entries/{$id}", ['data' => ['title' => 'Après restauration']])
+        ->assertOk();
+
+    expect($response->json('data.data.title'))->toBe('Après restauration')
+        ->and($response->json('data.has_unpublished_changes'))->toBeTrue()
+        ->and(Entry::find($id)->value('title'))->toBe('V2');
+});
+
+it('publishes the restored working copy so live gets V1 content', function () {
+    $id = entryWithTwoPublishedVersions($this);
+    $revisions = $this->withToken($this->token)->getJson("/api/editor/v1/entries/{$id}/revisions")->json('data');
+    $v1 = collect($revisions)->firstWhere('message', 'Publie V1');
+
+    $this->travel(1)->minutes();
+    $this->withToken($this->token)
+        ->postJson("/api/editor/v1/entries/{$id}/revisions/{$v1['id']}/restore")
+        ->assertOk();
+
+    $this->travel(1)->minutes();
+    $response = $this->withToken($this->token)
+        ->postJson("/api/editor/v1/entries/{$id}/published", ['message' => 'Republie V1'])
+        ->assertOk();
+
+    expect($response->json('data.data.title'))->toBe('V1')
+        ->and($response->json('data.has_unpublished_changes'))->toBeFalse()
+        ->and(Entry::find($id)->value('title'))->toBe('V1')
+        ->and(Entry::find($id)->hasWorkingCopy())->toBeFalse();
+});
+
+it('409s a stale PATCH sent after a publish moved last_modified forward', function () {
+    $create = $this->withToken($this->token)->postJson('/api/editor/v1/collections/articles/entries', [
+        'slug' => 'conflit-apres-publication', 'date' => '2026-01-01',
+        'data' => ['title' => 'V1'],
+    ])->assertStatus(201);
+    $id = $create->json('data.id');
+
+    $this->travel(1)->minutes();
+    $base = $this->withToken($this->token)->getJson("/api/editor/v1/entries/{$id}")->json('data.last_modified');
+
+    $this->travel(1)->minutes();
+    $this->withToken($this->token)
+        ->postJson("/api/editor/v1/entries/{$id}/published", ['message' => 'Mise en ligne'])
+        ->assertOk();
+
+    $this->travel(1)->minutes();
+    $this->withToken($this->token)
+        ->patchJson("/api/editor/v1/entries/{$id}", ['data' => ['title' => 'Conflit']], [
+            'X-Base-Modified' => $base,
+        ])->assertStatus(409)
+        ->assertJson(['error' => ['code' => 'conflict']]);
+});

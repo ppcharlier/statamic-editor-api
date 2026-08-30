@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
+use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
+use Ppcharlier\StatamicEditorApi\Support\SiteGuard;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Site;
 use Statamic\Rules\Slug;
@@ -17,6 +19,7 @@ final class EntriesController
 
     public function index(Request $request, $collection)
     {
+        SiteGuard::check($request);
         ResourceGate::collection($collection->handle());
 
         $params = $request->validate([
@@ -52,7 +55,7 @@ final class EntriesController
 
     public function show(Request $request, string $id)
     {
-        $entry = $this->findEntry($id);
+        $entry = $this->findEntry($request, $id);
         Guard::check($request->user(), PermissionMap::entries('view', $entry->collectionHandle()));
 
         return response()->json(['data' => EntryResource::detail($entry)]);
@@ -60,6 +63,7 @@ final class EntriesController
 
     public function store(Request $request, $collection)
     {
+        SiteGuard::check($request);
         ResourceGate::collection($handle = $collection->handle());
 
         $payload = $request->validate([
@@ -75,14 +79,14 @@ final class EntriesController
 
         $site = Site::default()->handle();
 
-        // The blueprint of a dated collection always carries an ensured 'date' field
-        // (see Statamic\Entries\Collection::ensureEntryBlueprintFields()), whose Date
-        // fieldtype validates against its own save format (an ISO datetime by default).
-        // Our payload carries the date as its own top-level 'Y-m-d' param rather than
-        // inside 'data', validated above, and applied via $entry->date() below — so
-        // that ensured field is excluded here to avoid double (and incompatible)
-        // validation of the same value.
-        $blueprintFields = $collection->dated() ? $blueprint->fields()->except('date') : $blueprint->fields();
+        // The blueprint always carries ensured 'slug' and, for dated collections,
+        // 'date' fields (see Statamic\Entries\Collection::ensureEntryBlueprintFields()).
+        // Both are exposed by this API as their own top-level params rather than inside
+        // 'data' (see MetaFields), so they're excluded from the field set used to
+        // validate and process 'data' — otherwise the Date fieldtype would double
+        // (and incompatibly) validate the top-level 'Y-m-d' param, and 'slug' would be
+        // processed with no value and land in entry data as a stray `slug: null`.
+        $blueprintFields = $blueprint->fields()->except(MetaFields::HANDLES);
 
         $fields = $blueprintFields->addValues($payload['data']);
         $fields->validator()
@@ -122,7 +126,7 @@ final class EntriesController
 
     public function update(Request $request, string $id)
     {
-        $entry = $this->findEntry($id);
+        $entry = $this->findEntry($request, $id);
         Guard::check($request->user(), PermissionMap::entries('edit', $handle = $entry->collectionHandle()));
 
         $this->guardAgainstConflict($request, $entry);
@@ -147,10 +151,11 @@ final class EntriesController
         $blueprint = $working->blueprint();
         $this->rejectUnknownFields($payload['data'], $blueprint);
 
-        // Same exclusion (and rationale) as store(): the blueprint's ensured 'date'
-        // field validates against its own save format, incompatible with our top-level
-        // Y-m-d payload date validated above and applied via $working->date().
-        $blueprintFields = $working->collection()->dated() ? $blueprint->fields()->except('date') : $blueprint->fields();
+        // Same exclusion (and rationale) as store(): 'slug' and 'date' are top-level
+        // params, not data fields (see MetaFields), and the blueprint's ensured 'date'
+        // field would otherwise validate against a save format incompatible with our
+        // top-level Y-m-d payload date validated above and applied via $working->date().
+        $blueprintFields = $blueprint->fields()->except(MetaFields::HANDLES);
 
         $fields = $blueprintFields->addValues($payload['data']);
         $fields->validator()
@@ -174,12 +179,12 @@ final class EntriesController
             $working->updateLastModified($request->user())->save();
         }
 
-        return response()->json(['data' => EntryResource::detail($this->findEntry($id))]);
+        return response()->json(['data' => EntryResource::detail($this->findEntry($request, $id))]);
     }
 
     public function destroy(Request $request, string $id)
     {
-        $entry = $this->findEntry($id);
+        $entry = $this->findEntry($request, $id);
         Guard::check($request->user(), PermissionMap::entries('delete', $entry->collectionHandle()));
 
         if ($entry->revisionsEnabled()) {
@@ -218,6 +223,17 @@ final class EntriesController
 
     private function rejectUnknownFields(array $data, $blueprint): void
     {
+        $meta = array_values(array_intersect(array_keys($data), MetaFields::HANDLES));
+
+        if ($meta !== []) {
+            throw new ApiException(
+                'unknown_field',
+                'These are top-level parameters, not data fields: '.implode(', ', $meta).'.',
+                422,
+                collect($meta)->mapWithKeys(fn ($f) => [$f => ["Use the top-level `{$f}` parameter instead of data.{$f}."]])->all(),
+            );
+        }
+
         $known = $blueprint->fields()->all()->keys()->all();
         $unknown = array_values(array_diff(array_keys($data), $known));
 

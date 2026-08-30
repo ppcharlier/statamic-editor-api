@@ -48,7 +48,7 @@ final class PublishedEntriesController
 
     private function guarded(Request $request, string $id)
     {
-        $entry = $this->findEntry($id);
+        $entry = $this->findEntry($request, $id);
         Guard::check($request->user(), PermissionMap::entries('publish', $entry->collectionHandle()));
 
         return $entry;

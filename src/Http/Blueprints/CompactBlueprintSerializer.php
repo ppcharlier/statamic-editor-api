@@ -3,6 +3,7 @@
 namespace Ppcharlier\StatamicEditorApi\Http\Blueprints;
 
 use Illuminate\Support\Arr;
+use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 
 final class CompactBlueprintSerializer
 {
@@ -30,6 +31,10 @@ final class CompactBlueprintSerializer
             'instructions' => $config['instructions'] ?? null,
             'required' => $field->isRequired(),
             'rules' => (array) ($config['validate'] ?? []),
+            // True for handles (slug, date) the API exposes as top-level request/response
+            // params rather than inside `data` — the client still gets the field's display
+            // config here, but should route its value through the top-level param.
+            'meta' => in_array($field->handle(), MetaFields::HANDLES, true),
             'config' => Arr::except($config, ['display', 'instructions', 'validate', 'type']),
         ];
     }

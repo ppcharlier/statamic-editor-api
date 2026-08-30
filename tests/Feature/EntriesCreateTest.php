@@ -96,3 +96,35 @@ it('422s an impossible date instead of silently rolling it over', function () {
         ])->assertStatus(422)
         ->assertJson(['error' => ['code' => 'validation_failed']]);
 });
+
+it('rejects data.slug as a meta handle, not a data field', function () {
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'meta-slug', 'date' => '2026-08-30',
+            'data' => ['title' => 'X', 'slug' => 'sournois'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'unknown_field']])
+        ->assertJsonStructure(['error' => ['errors' => ['slug']]]);
+});
+
+it('rejects data.date as a meta handle, not a data field', function () {
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'meta-date', 'date' => '2026-08-30',
+            'data' => ['title' => 'X', 'date' => '2026-01-01T00:00:00Z'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'unknown_field']])
+        ->assertJsonStructure(['error' => ['errors' => ['date']]]);
+});
+
+it('never persists a stray slug key inside entry data', function () {
+    $response = $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'propre', 'date' => '2026-08-30',
+            'data' => ['title' => 'Propre'],
+        ])->assertStatus(201);
+
+    $entry = Entry::find($response->json('data.id'));
+    expect($entry->data()->keys()->all())->not->toContain('slug')
+        ->and($entry->data()->keys()->all())->not->toContain('date');
+});

@@ -35,3 +35,15 @@ it('excludes surfaced keys from the config passthrough', function () {
     expect($fields->firstWhere('handle', 'title')['config'])
         ->not->toHaveKeys(['display', 'instructions', 'validate', 'type']);
 });
+
+it('flags slug and date as meta handles, but not title or body', function () {
+    $this->makeArticlesCollection(withRevisions: true);
+
+    $blueprint = \Statamic\Facades\Collection::findByHandle('articles')->entryBlueprint();
+    $fields = collect(CompactBlueprintSerializer::serialize($blueprint)['tabs'])->flatMap(fn ($t) => $t['fields']);
+
+    expect($fields->firstWhere('handle', 'slug')['meta'])->toBeTrue()
+        ->and($fields->firstWhere('handle', 'date')['meta'])->toBeTrue()
+        ->and($fields->firstWhere('handle', 'title')['meta'])->toBeFalse()
+        ->and($fields->firstWhere('handle', 'body')['meta'])->toBeFalse();
+});

@@ -59,3 +59,33 @@ it('404s an entry of a collection excluded by the whitelist', function () {
         ->getJson('/api/editor/v1/entries/'.$this->entry->id())
         ->assertStatus(404);
 });
+
+it('never leaks internal bookkeeping keys into data', function () {
+    $draft = tap(Entry::make()->collection('articles')->slug('brouillon')->date('2026-01-01')
+        ->data(['title' => 'Brouillon'])->published(false))->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$draft->id(), ['data' => ['title' => 'Modifié']])
+        ->assertOk();
+
+    // Confirms the bookkeeping key really is on the entry (updateLastModified writes it
+    // straight into data), so filtering it out of the response is what's under test here.
+    expect(Entry::find($draft->id())->get('updated_at'))->not->toBeNull();
+
+    $response = $this->withToken($this->token)
+        ->getJson('/api/editor/v1/entries/'.$draft->id())
+        ->assertOk();
+
+    expect($response->json('data.data'))->not->toHaveKeys(['updated_by', 'updated_at', 'slug', 'date']);
+});
+
+it('round-trips GET data straight into PATCH data', function () {
+    $show = $this->withToken($this->token)
+        ->getJson('/api/editor/v1/entries/'.$this->entry->id())
+        ->assertOk();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->entry->id(), [
+            'data' => $show->json('data.data'),
+        ])->assertOk();
+});

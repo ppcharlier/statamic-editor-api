@@ -45,7 +45,7 @@ final class RevisionsController
 
     private function revisable(Request $request, string $id, string $action)
     {
-        $entry = $this->findEntry($id);
+        $entry = $this->findEntry($request, $id);
         Guard::check($request->user(), PermissionMap::entries($action, $entry->collectionHandle()));
 
         if (! $entry->revisionsEnabled()) {
