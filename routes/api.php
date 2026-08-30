@@ -27,6 +27,9 @@ if (app()->runningUnitTests()) {
 
         return response()->json(['data' => ['ok' => true]]);
     });
+
+    Route::middleware(['editor-api.auth', 'editor-api.can:entries,edit,collection'])
+        ->get('_guarded/{collection}', fn () => response()->json(['data' => ['ok' => true]]));
 }
 
 Route::any('{any}', fn () => ApiError::response('not_found', 'Not found.', 404))->where('any', '.*');

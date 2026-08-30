@@ -33,6 +33,7 @@ class ServiceProvider extends AddonServiceProvider
     public function bootAddon()
     {
         Route::aliasMiddleware('editor-api.auth', \Ppcharlier\StatamicEditorApi\Auth\AuthenticateEditorApi::class);
+        Route::aliasMiddleware('editor-api.can', \Ppcharlier\StatamicEditorApi\Permissions\EnsurePermission::class);
 
         $this->publishes([
             __DIR__.'/../config/editor-api.php' => config_path('statamic/editor-api.php'),
