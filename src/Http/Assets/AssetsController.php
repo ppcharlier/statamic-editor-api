@@ -3,6 +3,8 @@
 namespace Ppcharlier\StatamicEditorApi\Http\Assets;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
@@ -98,9 +100,12 @@ final class AssetsController
         }
 
         if (array_key_exists('data', $payload)) {
-            $fields = $container->blueprint()->fields()->addValues($payload['data']);
+            $blueprint = $container->blueprint();
+            $this->rejectUnknownFields($payload['data'], $blueprint);
+
+            $fields = $blueprint->fields()->addValues($payload['data']);
             $fields->validator()->validate();
-            $asset->merge($fields->process()->values()->all());
+            $asset->merge(Arr::only($fields->process()->values()->all(), array_keys($payload['data'])));
             $asset->save();
         }
 
@@ -116,5 +121,20 @@ final class AssetsController
         }
 
         return response()->json(['data' => AssetResource::toArray($container->asset($asset->path()))]);
+    }
+
+    private function rejectUnknownFields(array $data, $blueprint): void
+    {
+        $known = $blueprint->fields()->all()->keys()->all();
+        $unknown = array_values(array_diff(array_keys($data), $known));
+
+        if ($unknown !== []) {
+            throw new ApiException(
+                'unknown_field',
+                'Unknown fields: '.implode(', ', $unknown).'.',
+                422,
+                collect($unknown)->mapWithKeys(fn ($f) => [$f => ['This field is not in the blueprint.']])->all(),
+            );
+        }
     }
 }

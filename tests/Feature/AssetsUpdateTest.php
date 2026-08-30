@@ -4,6 +4,7 @@ use Illuminate\Http\UploadedFile;
 use Ppcharlier\StatamicEditorApi\Tests\Support\BuildsAssetFixtures;
 use Ppcharlier\StatamicEditorApi\Tests\Support\BuildsEntryFixtures;
 use Statamic\Facades\AssetContainer;
+use Statamic\Facades\Blueprint;
 
 uses(BuildsEntryFixtures::class, BuildsAssetFixtures::class);
 
@@ -12,6 +13,16 @@ beforeEach(function () {
     $this->token = $this->makeSuperToken();
     $this->container->makeAsset('photo.jpg')->upload(UploadedFile::fake()->image('photo.jpg'));
 });
+
+$withAltAndCaptionBlueprint = function () {
+    Blueprint::make('uploads')
+        ->setNamespace('assets')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'alt', 'field' => ['type' => 'text', 'display' => 'Alt']],
+            ['handle' => 'caption', 'field' => ['type' => 'text', 'display' => 'Caption']],
+        ]]]]]])
+        ->save();
+};
 
 it('renames an asset', function () {
     $response = $this->withToken($this->token)
@@ -76,4 +87,39 @@ it('rejects an empty payload', function () {
         ->patchJson('/api/editor/v1/assets/uploads/photo.jpg', [])
         ->assertStatus(422)
         ->assertJson(['error' => ['code' => 'validation_failed']]);
+});
+
+it('does not null out other blueprint fields on a partial data patch', function () use ($withAltAndCaptionBlueprint) {
+    $withAltAndCaptionBlueprint();
+
+    $asset = AssetContainer::findByHandle('uploads')->asset('photo.jpg');
+    $asset->set('caption', 'Garder-moi')->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/assets/uploads/photo.jpg', ['data' => ['alt' => 'New']])
+        ->assertOk();
+
+    $fresh = AssetContainer::findByHandle('uploads')->asset('photo.jpg');
+    expect($fresh->get('alt'))->toBe('New');
+    expect($fresh->get('caption'))->toBe('Garder-moi');
+});
+
+it('does not persist data when a combined operation is refused', function () {
+    $token = $this->makeTokenWithPermissions(['view uploads assets', 'edit uploads assets']); // pas move
+
+    $this->withToken($token)
+        ->patchJson('/api/editor/v1/assets/uploads/photo.jpg', [
+            'data' => ['alt' => 'Ne doit pas rester'],
+            'folder' => 'ailleurs',
+        ])->assertStatus(403);
+
+    expect(AssetContainer::findByHandle('uploads')->asset('photo.jpg')->get('alt'))->toBeNull();
+});
+
+it('rejects an unknown data field', function () {
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/assets/uploads/photo.jpg', ['data' => ['atl' => 'typo']])
+        ->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'unknown_field']])
+        ->assertJsonPath('error.errors.atl.0', 'This field is not in the blueprint.');
 });
