@@ -7,11 +7,13 @@ it('returns the standard envelope for unknown routes inside the prefix', functio
 });
 
 it('converts uncaught exceptions to server_error without leaking details', function () {
-    $this->app['router']->get('/_test/boom', fn () => throw new RuntimeException('secret detail'))
-        ->middleware('editor-api.errors');
+    $middleware = new \Ppcharlier\StatamicEditorApi\Http\Errors\HandleApiErrors();
+    $response = $middleware->handle(
+        \Illuminate\Http\Request::create('/api/editor/v1/anything'),
+        fn () => throw new RuntimeException('secret detail'),
+    );
 
-    $response = $this->getJson('/_test/boom');
-
-    $response->assertStatus(500)->assertJson(['error' => ['code' => 'server_error']]);
-    expect($response->json('error.message'))->not->toContain('secret detail');
+    expect($response->getStatusCode())->toBe(500)
+        ->and($response->getData(true)['error']['code'])->toBe('server_error')
+        ->and($response->getData(true)['error']['message'])->not->toContain('secret detail');
 });
