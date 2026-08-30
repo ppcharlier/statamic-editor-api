@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Ppcharlier\StatamicEditorApi\Http\Auth\MeController;
 use Ppcharlier\StatamicEditorApi\Http\Auth\TokensController;
+use Ppcharlier\StatamicEditorApi\Http\Blueprints\BlueprintsController;
 use Ppcharlier\StatamicEditorApi\Http\Config\ConfigController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 
@@ -16,6 +17,11 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::get('config', ConfigController::class)->name('config');
 
     Route::get('me', MeController::class)->name('me');
+
+    Route::get('collections/{collection}/blueprints', [BlueprintsController::class, 'index'])
+        ->middleware('editor-api.can:entries,view,collection')->name('blueprints.index');
+    Route::get('collections/{collection}/blueprints/{blueprint}', [BlueprintsController::class, 'show'])
+        ->middleware('editor-api.can:entries,view,collection')->name('blueprints.show');
 });
 
 if (app()->runningUnitTests()) {
