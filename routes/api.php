@@ -30,6 +30,7 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
         ->middleware('editor-api.can:entries,create,collection')->name('entries.store');
 
     Route::get('entries/{id}', [EntriesController::class, 'show'])->name('entries.show');
+    Route::patch('entries/{id}', [EntriesController::class, 'update'])->name('entries.update');
 });
 
 if (app()->runningUnitTests()) {

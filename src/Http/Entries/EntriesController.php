@@ -120,6 +120,61 @@ final class EntriesController
         return response()->json(['data' => EntryResource::detail(Entry::find($entry->id()))], 201);
     }
 
+    public function update(Request $request, string $id)
+    {
+        $entry = $this->findEntry($id);
+        Guard::check($request->user(), PermissionMap::entries('edit', $handle = $entry->collectionHandle()));
+
+        if ($request->has('published')) {
+            throw new ApiException(
+                'unknown_field',
+                'The published flag cannot be changed here — use the published endpoints.',
+                422,
+                ['published' => ['Use POST/DELETE /entries/{id}/published instead.']],
+            );
+        }
+
+        $payload = $request->validate([
+            'slug' => ['sometimes', 'string', new Slug],
+            'date' => ['sometimes', 'date_format:Y-m-d'],
+            'data' => ['required', 'array'],
+        ]);
+
+        $working = $entry->fromWorkingCopy();
+
+        $blueprint = $working->blueprint();
+        $this->rejectUnknownFields($payload['data'], $blueprint);
+
+        // Same exclusion (and rationale) as store(): the blueprint's ensured 'date'
+        // field validates against its own save format, incompatible with our top-level
+        // Y-m-d payload date validated above and applied via $working->date().
+        $blueprintFields = $working->collection()->dated() ? $blueprint->fields()->except('date') : $blueprint->fields();
+
+        $fields = $blueprintFields->addValues($payload['data']);
+        $fields->validator()
+            ->withRules(Entry::updateRules($working->collection(), $working))
+            ->withReplacements(['id' => $working->id(), 'collection' => $handle, 'site' => $working->locale()])
+            ->validate();
+
+        $working->merge($fields->process()->values()->all());
+
+        if (isset($payload['slug'])) {
+            $working->slug($payload['slug']);
+        }
+
+        if (isset($payload['date']) && $working->collection()->dated()) {
+            $working->date($payload['date']);
+        }
+
+        if ($working->revisionsEnabled() && $working->published()) {
+            $working->makeWorkingCopy()->user($request->user())->save();
+        } else {
+            $working->updateLastModified($request->user())->save();
+        }
+
+        return response()->json(['data' => EntryResource::detail($this->findEntry($id))]);
+    }
+
     private function rejectUnknownFields(array $data, $blueprint): void
     {
         $known = $blueprint->fields()->all()->keys()->all();
