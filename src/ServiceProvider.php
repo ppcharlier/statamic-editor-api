@@ -15,6 +15,11 @@ class ServiceProvider extends AddonServiceProvider
         parent::register();
 
         $this->mergeConfigFrom(__DIR__.'/../config/editor-api.php', 'statamic.editor-api');
+
+        $this->app->singleton(
+            \Ppcharlier\StatamicEditorApi\Auth\TokenRepository::class,
+            \Ppcharlier\StatamicEditorApi\Auth\FileTokenRepository::class,
+        );
     }
 
     public function bootAddon()
