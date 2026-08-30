@@ -32,6 +32,9 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::get('entries/{id}', [EntriesController::class, 'show'])->name('entries.show');
     Route::patch('entries/{id}', [EntriesController::class, 'update'])->name('entries.update');
     Route::delete('entries/{id}', [EntriesController::class, 'destroy'])->name('entries.destroy');
+
+    Route::post('entries/{id}/published', [\Ppcharlier\StatamicEditorApi\Http\Entries\PublishedEntriesController::class, 'store'])->name('entries.publish');
+    Route::delete('entries/{id}/published', [\Ppcharlier\StatamicEditorApi\Http\Entries\PublishedEntriesController::class, 'destroy'])->name('entries.unpublish');
 });
 
 if (app()->runningUnitTests()) {
