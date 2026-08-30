@@ -33,15 +33,20 @@ final class FileTokenRepository implements TokenRepository
         $hash = hash('sha256', $plainText);
         $path = $this->pathFor($hash);
 
-        if (! File::exists($path)) {
+        try {
+            return Token::fromArray($hash, YAML::parse(File::get($path)));
+        } catch (\Throwable) {
             return null;
         }
-
-        return Token::fromArray($hash, YAML::parse(File::get($path)));
     }
 
     public function touchLastUsed(Token $token): void
     {
+        // Don't resurrect a revoked token
+        if (! File::exists($this->pathFor($token->hash))) {
+            return;
+        }
+
         $this->write(new Token(
             hash: $token->hash,
             userId: $token->userId,
@@ -59,8 +64,14 @@ final class FileTokenRepository implements TokenRepository
 
     private function write(Token $token): void
     {
-        File::ensureDirectoryExists($this->storagePath());
-        File::put($this->pathFor($token->hash), YAML::dump($token->toArray()));
+        $storagePath = $this->storagePath();
+        File::ensureDirectoryExists($storagePath);
+
+        $destination = $this->pathFor($token->hash);
+        $temporary = $destination.'.tmp.'.uniqid();
+
+        File::put($temporary, YAML::dump($token->toArray()));
+        rename($temporary, $destination);
     }
 
     private function pathFor(string $hash): string

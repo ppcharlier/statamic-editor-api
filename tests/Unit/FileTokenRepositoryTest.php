@@ -71,3 +71,19 @@ it('revokes a token', function () {
 
     expect($this->repo->findByPlainText($new->plainText))->toBeNull();
 });
+
+it('returns null for a corrupted token file instead of throwing', function () {
+    $new = $this->repo->create('user-1', 'iPhone');
+    file_put_contents(config('statamic.editor-api.storage_path').'/'.$new->token->hash.'.yaml', "{invalid: [yaml");
+
+    expect($this->repo->findByPlainText($new->plainText))->toBeNull();
+});
+
+it('does not resurrect a revoked token on touchLastUsed', function () {
+    $new = $this->repo->create('user-1', 'iPhone');
+    $this->repo->revoke($new->token->hash);
+
+    $this->repo->touchLastUsed($new->token);
+
+    expect($this->repo->findByPlainText($new->plainText))->toBeNull();
+});
