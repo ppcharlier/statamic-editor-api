@@ -8,6 +8,6 @@ it('merges the addon config with defaults', function () {
 
 it('registers versioned routes under the configured prefix', function () {
     $this->getJson('/api/editor/v1/ping')
-        ->assertOk()
-        ->assertJson(['data' => ['pong' => true]]);
+        ->assertStatus(401)
+        ->assertJson(['error' => ['code' => 'unauthenticated']]);
 });

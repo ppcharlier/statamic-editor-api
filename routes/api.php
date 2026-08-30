@@ -1,9 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Ppcharlier\StatamicEditorApi\Http\Auth\TokensController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiError;
 
-Route::get('ping', fn () => response()->json(['data' => ['pong' => true]]))->name('ping');
+Route::post('auth/tokens', [TokensController::class, 'store'])
+    ->middleware('throttle:editor-api-auth')
+    ->name('auth.tokens.store');
+
+Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function () {
+    Route::delete('auth/tokens/current', [TokensController::class, 'destroyCurrent'])->name('auth.tokens.destroy');
+
+    Route::get('ping', fn () => response()->json(['data' => ['pong' => true]]))->name('ping');
+});
 
 if (app()->runningUnitTests()) {
     Route::middleware('editor-api.auth')
