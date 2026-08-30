@@ -19,6 +19,8 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddon()
     {
+        Route::aliasMiddleware('editor-api.errors', \Ppcharlier\StatamicEditorApi\Http\Errors\HandleApiErrors::class);
+
         $this->publishes([
             __DIR__.'/../config/editor-api.php' => config_path('statamic/editor-api.php'),
         ], 'editor-api-config');
@@ -32,7 +34,7 @@ class ServiceProvider extends AddonServiceProvider
                 ->by($request->bearerToken() ?? $request->ip());
         });
 
-        Route::middleware('api')
+        Route::middleware(['api', 'editor-api.errors'])
             ->prefix(config('statamic.editor-api.route_prefix', 'api/editor').'/v1')
             ->name('editor-api.')
             ->group(__DIR__.'/../routes/api.php');
