@@ -38,6 +38,8 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
 
     Route::get('entries/{id}/revisions', [\Ppcharlier\StatamicEditorApi\Http\Revisions\RevisionsController::class, 'index'])->name('revisions.index');
     Route::post('entries/{id}/revisions/{revision}/restore', [\Ppcharlier\StatamicEditorApi\Http\Revisions\RevisionsController::class, 'restore'])->name('revisions.restore');
+
+    Route::get('assets/{asset_container}', [\Ppcharlier\StatamicEditorApi\Http\Assets\AssetsController::class, 'index'])->name('assets.index');
 });
 
 if (app()->runningUnitTests()) {

@@ -12,4 +12,11 @@ final class ResourceGate
             throw new ApiException('not_found', 'Not found.', 404);
         }
     }
+
+    public static function assetContainer(string $handle): void
+    {
+        if (! ResourceConfig::enabled('assets', $handle)) {
+            throw new ApiException('not_found', 'Not found.', 404);
+        }
+    }
 }
