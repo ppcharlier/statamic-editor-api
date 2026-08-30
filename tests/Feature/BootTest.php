@@ -7,7 +7,7 @@ it('merges the addon config with defaults', function () {
 });
 
 it('registers versioned routes under the configured prefix', function () {
-    $this->getJson('/api/editor/v1/ping')
+    $this->getJson('/api/editor/v1/config')
         ->assertStatus(401)
         ->assertJson(['error' => ['code' => 'unauthenticated']]);
 });
