@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Ppcharlier\StatamicEditorApi\Http\Auth\MeController;
 use Ppcharlier\StatamicEditorApi\Http\Auth\TokensController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiError;
 
@@ -12,6 +13,8 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::delete('auth/tokens/current', [TokensController::class, 'destroyCurrent'])->name('auth.tokens.destroy');
 
     Route::get('ping', fn () => response()->json(['data' => ['pong' => true]]))->name('ping');
+
+    Route::get('me', MeController::class)->name('me');
 });
 
 if (app()->runningUnitTests()) {
