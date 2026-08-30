@@ -35,6 +35,9 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
 
     Route::post('entries/{id}/published', [\Ppcharlier\StatamicEditorApi\Http\Entries\PublishedEntriesController::class, 'store'])->name('entries.publish');
     Route::delete('entries/{id}/published', [\Ppcharlier\StatamicEditorApi\Http\Entries\PublishedEntriesController::class, 'destroy'])->name('entries.unpublish');
+
+    Route::get('entries/{id}/revisions', [\Ppcharlier\StatamicEditorApi\Http\Revisions\RevisionsController::class, 'index'])->name('revisions.index');
+    Route::post('entries/{id}/revisions/{revision}/restore', [\Ppcharlier\StatamicEditorApi\Http\Revisions\RevisionsController::class, 'restore'])->name('revisions.restore');
 });
 
 if (app()->runningUnitTests()) {
