@@ -64,7 +64,7 @@ final class EntriesController
 
         $payload = $request->validate([
             'slug' => ['required', 'string', new Slug],
-            'date' => ['nullable', 'string'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
             'published' => ['sometimes', 'boolean'],
             'message' => ['nullable', 'string', 'max:500'],
             'data' => ['required', 'array'],

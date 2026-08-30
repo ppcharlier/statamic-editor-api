@@ -77,3 +77,22 @@ it('rejects fields unknown to the blueprint', function () {
         ->assertJson(['error' => ['code' => 'unknown_field']])
         ->assertJsonStructure(['error' => ['errors' => ['hacker_field']]]);
 });
+
+it('422s an unparseable date', function () {
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'bad-date', 'date' => 'not-a-date',
+            'data' => ['title' => 'X'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']])
+        ->assertJsonStructure(['error' => ['errors' => ['date']]]);
+});
+
+it('422s an impossible date instead of silently rolling it over', function () {
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'rollover', 'date' => '2026-99-99',
+            'data' => ['title' => 'X'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']]);
+});
