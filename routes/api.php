@@ -41,6 +41,8 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
 
     Route::get('assets/{asset_container}', [\Ppcharlier\StatamicEditorApi\Http\Assets\AssetsController::class, 'index'])->name('assets.index');
     Route::post('assets/{asset_container}', [\Ppcharlier\StatamicEditorApi\Http\Assets\AssetsController::class, 'store'])->name('assets.store');
+    Route::patch('assets/{asset_container}/{path}', [\Ppcharlier\StatamicEditorApi\Http\Assets\AssetsController::class, 'update'])
+        ->where('path', '.*')->name('assets.update');
 });
 
 if (app()->runningUnitTests()) {
