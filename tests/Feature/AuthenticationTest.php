@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Ppcharlier\StatamicEditorApi\Auth\TokenRepository;
 use Statamic\Facades\User;
 
@@ -46,4 +45,15 @@ it('rejects tokens whose user no longer exists', function () {
     $this->withToken($token->plainText)->getJson('/api/editor/v1/_protected')
         ->assertStatus(401)
         ->assertJson(['error' => ['code' => 'unauthenticated']]);
+});
+
+it('prefers token_expired over unauthenticated when both apply', function () {
+    config()->set('statamic.editor-api.auth.token_ttl_days', 1);
+    $token = app(TokenRepository::class)->create('deleted-user-id', 'iPhone');
+
+    $this->travel(2)->days();
+
+    $this->withToken($token->plainText)->getJson('/api/editor/v1/_protected')
+        ->assertStatus(401)
+        ->assertJson(['error' => ['code' => 'token_expired']]);
 });
