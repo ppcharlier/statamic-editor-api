@@ -4,6 +4,7 @@ use Ppcharlier\StatamicEditorApi\Auth\TokenRepository;
 use Statamic\Facades\User;
 
 beforeEach(function () {
+    $this->withoutExceptionHandling();
     $this->user = tap(User::make()->email('pp@example.com')->makeSuper())->save();
 });
 
