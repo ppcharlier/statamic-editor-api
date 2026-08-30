@@ -15,7 +15,8 @@ it('returns the profile and wildcard permissions for a super admin', function ()
             'name' => 'Pierre-Philippe',
             'super' => true,
             'permissions' => ['*'],
-        ]]);
+        ]])
+        ->assertJsonStructure(['data' => ['avatar']]);
 });
 
 it('returns resolved role permissions for a regular user', function () {

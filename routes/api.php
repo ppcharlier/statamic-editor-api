@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Ppcharlier\StatamicEditorApi\Http\Auth\MeController;
 use Ppcharlier\StatamicEditorApi\Http\Auth\TokensController;
 use Ppcharlier\StatamicEditorApi\Http\Config\ConfigController;
-use Ppcharlier\StatamicEditorApi\Http\Errors\ApiError;
+use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 
 Route::post('auth/tokens', [TokensController::class, 'store'])
     ->middleware('throttle:editor-api-auth')
@@ -31,6 +31,9 @@ if (app()->runningUnitTests()) {
 
     Route::middleware(['editor-api.auth', 'editor-api.can:entries,edit,collection'])
         ->get('_guarded/{collection}', fn () => response()->json(['data' => ['ok' => true]]));
+
+    Route::get('_forbidden', fn () => abort(403));
+    Route::get('_teapot', fn () => abort(418));
 }
 
-Route::any('{any}', fn () => ApiError::response('not_found', 'Not found.', 404))->where('any', '.*');
+Route::any('{any}', NotFoundController::class)->where('any', '.*');

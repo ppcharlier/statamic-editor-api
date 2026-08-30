@@ -2,17 +2,19 @@
 
 namespace Ppcharlier\StatamicEditorApi;
 
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiError;
+use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 use Statamic\Providers\AddonServiceProvider;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -64,24 +66,51 @@ class ServiceProvider extends AddonServiceProvider
             $handler->renderable(fn (AuthenticationException $e, Request $request) => $whenEditorApi($request,
                 fn () => ApiError::response('unauthenticated', 'Unauthenticated.', 401)));
 
-            $handler->renderable(fn (AuthorizationException $e, Request $request) => $whenEditorApi($request,
-                fn () => ApiError::response('forbidden', 'This action is not authorized.', 403)));
-
             $handler->renderable(fn (NotFoundHttpException $e, Request $request) => $whenEditorApi($request,
                 fn () => ApiError::response('not_found', 'Not found.', 404)));
+
+            $handler->renderable(fn (HttpExceptionInterface $e, Request $request) => $whenEditorApi($request,
+                fn () => $this->respondToHttpException($e)));
 
             $handler->renderable(fn (Throwable $e, Request $request) => $whenEditorApi($request,
                 fn () => ApiError::response('server_error', 'An unexpected error occurred.', 500)));
         });
 
         Route::middleware(['api'])
-            ->prefix(config('statamic.editor-api.route_prefix', 'api/editor').'/v1')
+            ->prefix($this->routePrefix().'/v1')
             ->name('editor-api.')
             ->group(__DIR__.'/../routes/api.php');
     }
 
+    /**
+     * Maps any HttpExceptionInterface (e.g. AccessDeniedHttpException, which is what
+     * AuthorizationException is converted into by Handler::prepareException() before
+     * renderables run) to the standard error envelope, by status code.
+     */
+    private function respondToHttpException(HttpExceptionInterface $e): JsonResponse
+    {
+        $status = $e->getStatusCode();
+
+        [$code, $message] = match ($status) {
+            401 => ['unauthenticated', 'Unauthenticated.'],
+            403 => ['forbidden', 'This action is not authorized.'],
+            404 => ['not_found', 'Not found.'],
+            429 => ['rate_limited', 'Too many requests.'],
+            default => $status >= 500
+                ? ['server_error', 'An unexpected error occurred.']
+                : ['http_error', 'An error occurred.'],
+        };
+
+        return ApiError::response($code, $message, $status);
+    }
+
     private function isEditorApiRequest(Request $request): bool
     {
-        return $request->is(config('statamic.editor-api.route_prefix', 'api/editor').'/*');
+        return $request->is($this->routePrefix().'/*');
+    }
+
+    private function routePrefix(): string
+    {
+        return config('statamic.editor-api.route_prefix', 'api/editor');
     }
 }

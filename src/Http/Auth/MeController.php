@@ -14,6 +14,7 @@ final class MeController
             'id' => $user->id(),
             'name' => $user->name(),
             'email' => $user->email(),
+            'avatar' => $user->avatar(),
             'super' => $user->isSuper(),
             'permissions' => $user->isSuper() ? ['*'] : $user->permissions()->values()->all(),
         ]]);
