@@ -25,6 +25,7 @@ class ServiceProvider extends AddonServiceProvider
     public function bootAddon()
     {
         Route::aliasMiddleware('editor-api.errors', \Ppcharlier\StatamicEditorApi\Http\Errors\HandleApiErrors::class);
+        Route::aliasMiddleware('editor-api.auth', \Ppcharlier\StatamicEditorApi\Auth\AuthenticateEditorApi::class);
 
         $this->publishes([
             __DIR__.'/../config/editor-api.php' => config_path('statamic/editor-api.php'),
