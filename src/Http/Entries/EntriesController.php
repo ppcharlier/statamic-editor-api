@@ -8,12 +8,11 @@ use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
-use Ppcharlier\StatamicEditorApi\Support\SiteGuard;
+use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Ppcharlier\StatamicEditorApi\Support\UniqueUri;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 use Statamic\Facades\Entry;
-use Statamic\Facades\Site;
 use Statamic\Rules\Slug;
 
 final class EntriesController
@@ -22,7 +21,7 @@ final class EntriesController
 
     public function index(Request $request, $collection)
     {
-        SiteGuard::check($request);
+        SiteResolver::resolve($request, $collection->sites()->all());
         ResourceGate::collection($collection->handle());
 
         $params = $request->validate([
@@ -72,7 +71,7 @@ final class EntriesController
 
     public function store(Request $request, $collection)
     {
-        SiteGuard::check($request);
+        $site = SiteResolver::resolve($request, $collection->sites()->all());
         ResourceGate::collection($handle = $collection->handle());
 
         $payload = $request->validate([
@@ -90,8 +89,6 @@ final class EntriesController
 
         $blueprint = $collection->entryBlueprint();
         $this->rejectUnknownFields($payload['data'], $blueprint);
-
-        $site = Site::default()->handle();
 
         // The blueprint always carries ensured 'slug' and, for dated collections,
         // 'date' fields (see Statamic\Entries\Collection::ensureEntryBlueprintFields()).

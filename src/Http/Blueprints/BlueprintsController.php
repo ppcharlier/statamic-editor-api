@@ -5,13 +5,13 @@ namespace Ppcharlier\StatamicEditorApi\Http\Blueprints;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
-use Ppcharlier\StatamicEditorApi\Support\SiteGuard;
+use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 
 final class BlueprintsController
 {
     public function index(Request $request, $collection)
     {
-        SiteGuard::check($request);
+        SiteResolver::resolve($request);
         ResourceGate::collection($collection->handle());
 
         return response()->json(['data' => $collection->entryBlueprints()
@@ -20,7 +20,7 @@ final class BlueprintsController
 
     public function show(Request $request, $collection, string $blueprint)
     {
-        SiteGuard::check($request);
+        SiteResolver::resolve($request);
         ResourceGate::collection($collection->handle());
 
         $found = $collection->entryBlueprints()->first(fn ($b) => $b->handle() === $blueprint);

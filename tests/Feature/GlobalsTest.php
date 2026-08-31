@@ -100,10 +100,11 @@ it('rejects a non-default site parameter', function () {
     // Contingence brief §step1 : pour `{global}`, le binder vendor
     // (RouteServiceProvider::bindGlobalSets) lit request('site'), résout la localisation
     // *avant* que le contrôleur ne s'exécute, et lève un 404 (NotFoundHttpException) si le
-    // set n'a pas de localisation pour ce site — ici 'fr' n'existe pas sur `footer`. Notre
-    // SiteGuard::check (422 `not_supported`) ne peut donc jamais s'exécuter pour cette route :
-    // le contrat « site non supporté ne passe pas » est préservé, seule la forme (404 au lieu
-    // de 422) diffère. Le contrôleur appelle quand même SiteGuard::check en défense en
+    // set n'a pas de localisation pour ce site — ici 'fr' n'existe pas sur `footer` (mono-site
+    // dans ce contexte de test, donc 'fr' est de toute façon inconnu). Notre
+    // SiteResolver::resolve (422 `validation_failed`) ne peut donc jamais s'exécuter pour cette
+    // route : le contrat « site non supporté ne passe pas » est préservé, seule la forme (404 au
+    // lieu de 422) diffère. Le contrôleur appelle quand même SiteResolver::resolve en défense en
     // profondeur, utile pour d'éventuelles routes globals futures non liées par ce binder.
     $this->withToken($this->token)
         ->getJson('/api/editor/v1/globals/footer?site=fr')

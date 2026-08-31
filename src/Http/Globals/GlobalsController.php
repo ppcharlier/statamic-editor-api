@@ -7,7 +7,7 @@ use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
-use Ppcharlier\StatamicEditorApi\Support\SiteGuard;
+use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 use Statamic\Facades\GlobalSet;
 
@@ -15,7 +15,7 @@ final class GlobalsController
 {
     public function index(Request $request)
     {
-        SiteGuard::check($request);
+        SiteResolver::resolve($request);
 
         $user = $request->user();
 
@@ -55,7 +55,7 @@ final class GlobalsController
 
     private function guarded(Request $request, $variables): void
     {
-        SiteGuard::check($request);
+        SiteResolver::resolve($request);
         ResourceGate::global($handle = $variables->globalSet()->handle());
         Guard::check($request->user(), PermissionMap::globals($handle));
     }
