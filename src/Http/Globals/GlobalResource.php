@@ -15,6 +15,7 @@ final class GlobalResource
         return [
             'handle' => $variables->globalSet()->handle(),
             'title' => $variables->globalSet()->title(),
+            'site' => $variables->locale(),
             'blueprint' => CompactBlueprintSerializer::serialize($blueprint),
             'values' => Arr::only($variables->data()->all(), $handles),
         ];
