@@ -36,6 +36,11 @@ final class EntryResource
         return array_merge(self::summary($entry), [
             'blueprint' => $working->blueprint()->handle(),
             'data' => Arr::only($working->data()->all(), $allowed),
+            'site' => $entry->locale(),
+            'localizations' => $entry->root()->descendants()
+                ->push($entry->root())
+                ->map(fn ($loc) => ['site' => $loc->locale(), 'id' => $loc->id()])
+                ->unique('site')->values()->all(),
         ]);
     }
 

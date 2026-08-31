@@ -22,7 +22,7 @@ final class EntriesController
 
     public function index(Request $request, $collection)
     {
-        SiteResolver::resolve($request, $collection->sites()->all());
+        $site = SiteResolver::resolve($request, $collection->sites()->all());
         ResourceGate::collection($collection->handle());
 
         $params = $request->validate([
@@ -32,7 +32,7 @@ final class EntriesController
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = Entry::query()->where('collection', $collection->handle());
+        $query = Entry::query()->where('collection', $collection->handle())->where('site', $site);
         $query->whereStatus($params['status'] ?? 'any');
 
         if ($search = $params['search'] ?? null) {
