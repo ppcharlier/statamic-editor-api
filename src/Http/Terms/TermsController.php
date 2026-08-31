@@ -143,16 +143,24 @@ final class TermsController
             'data' => ['required', 'array'],
         ]);
 
-        if (isset($payload['blueprint'])) {
-            $this->resolveBlueprint($taxonomy, $payload['blueprint']); // 422 hors set
-            $term->blueprint($payload['blueprint']);
-        }
+        // Validate against the TARGET blueprint object without installing it on the term
+        // yet: LocalizedTerm::blueprint() writes through to the shared Stache Term (the
+        // clone above is shallow — it keeps the same ->term reference), so setting it
+        // before validation would leave the process-wide instance carrying a blueprint
+        // that was never saved once the payload is rejected with a 422.
+        $blueprint = isset($payload['blueprint'])
+            ? $this->resolveBlueprint($taxonomy, $payload['blueprint']) // 422 hors set
+            : $term->blueprint();
 
-        $blueprint = $term->blueprint();
         UnknownFields::reject($payload['data'], array_diff($blueprint->fields()->all()->keys()->all(), ['slug']));
 
         $fields = $blueprint->fields()->except(['slug'])->addValues($payload['data']);
         $fields->validator()->validate();
+
+        // Payload is known good from here on — safe to mutate.
+        if (isset($payload['blueprint'])) {
+            $term->blueprint($payload['blueprint']);
+        }
 
         $term->merge($fields->process()->values()->all());
 
@@ -194,6 +202,12 @@ final class TermsController
 
     public function destroy(Request $request, $taxonomy, string $slug)
     {
+        // The delete itself is NOT localized — it removes the term and all of its
+        // localizations at once (CP parity, documented in the multi-site spec §5). The
+        // ?site= param is still validated rather than silently ignored, so a caller who
+        // believes they are deleting one site's version gets a 422 on a bad handle instead
+        // of a 204 that wiped every site.
+        SiteResolver::resolve($request, $taxonomy->sites()->all());
         ResourceGate::taxonomy($handle = $taxonomy->handle());
         Guard::check($request->user(), PermissionMap::terms('delete', $handle));
 

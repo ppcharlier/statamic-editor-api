@@ -57,6 +57,25 @@ it('creates a term directly in a non-default site', function () {
         ->and($term->in('en')->value('title'))->toBe('Mystique');
 });
 
+it('gates ?site= on delete, then deletes every localization', function () {
+    // Le DELETE n'est pas localisé (parité CP : supprimer un terme supprime le terme ET
+    // toutes ses localisations), mais le paramètre doit quand même être validé plutôt
+    // qu'ignoré en silence — sinon `?site=de` renverrait un 204 en supprimant tout.
+    $this->withToken($this->token)
+        ->deleteJson('/api/editor/v1/taxonomies/themes/terms/philosophie?site=de')
+        ->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']])
+        ->assertJsonStructure(['error' => ['errors' => ['site']]]);
+
+    expect(Term::find('themes::philosophie'))->not->toBeNull();
+
+    $this->withToken($this->token)
+        ->deleteJson('/api/editor/v1/taxonomies/themes/terms/philosophie?site=fr')
+        ->assertStatus(204);
+
+    expect(Term::find('themes::philosophie'))->toBeNull();
+});
+
 it('422s an unknown site outside the taxonomy set', function () {
     $this->withToken($this->token)
         ->getJson('/api/editor/v1/taxonomies/themes/terms?site=de')

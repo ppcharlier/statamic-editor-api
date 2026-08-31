@@ -59,6 +59,47 @@ it('normalizes an uppercase slug on rename and still returns 200', function () {
     expect(Term::find('themes::philo_nouvelle'))->not->toBeNull();
 });
 
+function makeVarianteBlueprint(): void
+{
+    // Nommé après 'theme' dans l'ordre alphabétique pour que le blueprint par défaut du
+    // set (le premier) reste 'theme' et que le switch testé soit un vrai changement.
+    Blueprint::make('variante')
+        ->setNamespace('taxonomies.themes')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'title', 'field' => ['type' => 'text', 'validate' => ['required']]],
+            ['handle' => 'resume', 'field' => ['type' => 'textarea']],
+        ]]]]]])
+        ->save();
+}
+
+it('switches the blueprint when the data is valid', function () {
+    makeVarianteBlueprint();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/taxonomies/themes/terms/philosophie', [
+            'blueprint' => 'variante',
+            'data' => ['title' => 'Philosophie', 'resume' => 'Court'],
+        ])->assertOk()
+        ->assertJsonPath('data.blueprint', 'variante');
+
+    expect(Term::find('themes::philosophie')->blueprint()->handle())->toBe('variante');
+});
+
+it('leaves the blueprint untouched when the payload is rejected', function () {
+    // Stache rend le MÊME objet Term à chaque lookup du process, et LocalizedTerm::blueprint()
+    // écrit dans ce Term partagé (le clone du contrôleur est superficiel). Poser le blueprint
+    // avant la validation laisserait donc l'instance en cache mutée après un 422 — verrouillé ici.
+    makeVarianteBlueprint();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/taxonomies/themes/terms/philosophie', [
+            'blueprint' => 'variante',
+            'data' => ['title' => ''], // viole le `required` du blueprint
+        ])->assertStatus(422);
+
+    expect(Term::find('themes::philosophie')->blueprint()->handle())->toBe('theme');
+});
+
 it('rejects slug inside data', function () {
     $this->withToken($this->token)
         ->patchJson('/api/editor/v1/taxonomies/themes/terms/philosophie', [
