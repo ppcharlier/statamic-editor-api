@@ -10,11 +10,20 @@ final class PermissionMap
 
     private const ASSET_ACTIONS = ['view', 'upload', 'edit', 'move', 'rename', 'delete'];
 
+    private const TERM_ACTIONS = ['view', 'edit', 'create', 'delete'];
+
     public static function entries(string $action, string $collection): string
     {
         self::assertAction($action, self::ENTRY_ACTIONS);
 
         return "{$action} {$collection} entries";
+    }
+
+    public static function terms(string $action, string $taxonomy): string
+    {
+        self::assertAction($action, self::TERM_ACTIONS);
+
+        return "{$action} {$taxonomy} terms";
     }
 
     public static function assets(string $action, string $container): string

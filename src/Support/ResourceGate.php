@@ -26,4 +26,11 @@ final class ResourceGate
             throw new ApiException('not_found', 'Not found.', 404);
         }
     }
+
+    public static function taxonomy(string $handle): void
+    {
+        if (! ResourceConfig::enabled('taxonomies', $handle)) {
+            throw new ApiException('not_found', 'Not found.', 404);
+        }
+    }
 }
