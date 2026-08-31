@@ -5,6 +5,8 @@ namespace Ppcharlier\StatamicEditorApi;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
+use Illuminate\Foundation\Http\Middleware\TrimStrings;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,6 +53,17 @@ class ServiceProvider extends AddonServiceProvider
     {
         Route::aliasMiddleware('editor-api.auth', \Ppcharlier\StatamicEditorApi\Auth\AuthenticateEditorApi::class);
         Route::aliasMiddleware('editor-api.can', \Ppcharlier\StatamicEditorApi\Permissions\EnsurePermission::class);
+
+        // The editor API sends structured (nested) JSON, unlike the CP's web forms which
+        // serialize rich-text fields (e.g. bard) as a single JSON string — a shape the
+        // global TrimStrings / ConvertEmptyStringsToNull middleware never reaches into.
+        // Because we send real nested JSON, those middleware walk every leaf and mangle
+        // payloads before they ever reach the blueprint: interior/edge whitespace (incl.
+        // NBSP) trimmed on every text node, and "" silently rewritten to null. Editors
+        // need byte-for-byte round-trips, so both are skipped for editor API requests.
+        $whenEditorApiRequest = fn (Request $request) => $this->isEditorApiRequest($request);
+        TrimStrings::skipWhen($whenEditorApiRequest);
+        ConvertEmptyStringsToNull::skipWhen($whenEditorApiRequest);
 
         $this->publishes([
             __DIR__.'/../config/editor-api.php' => config_path('statamic/editor-api.php'),
