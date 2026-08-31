@@ -45,6 +45,10 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
         ->where('path', '.*')->name('assets.update');
     Route::delete('assets/{asset_container}/{path}', [\Ppcharlier\StatamicEditorApi\Http\Assets\AssetsController::class, 'destroy'])
         ->where('path', '.*')->name('assets.destroy');
+
+    Route::get('globals', [\Ppcharlier\StatamicEditorApi\Http\Globals\GlobalsController::class, 'index'])->name('globals.index');
+    Route::get('globals/{global}', [\Ppcharlier\StatamicEditorApi\Http\Globals\GlobalsController::class, 'show'])->name('globals.show');
+    Route::patch('globals/{global}', [\Ppcharlier\StatamicEditorApi\Http\Globals\GlobalsController::class, 'update'])->name('globals.update');
 });
 
 if (app()->runningUnitTests()) {

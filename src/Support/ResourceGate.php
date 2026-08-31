@@ -19,4 +19,11 @@ final class ResourceGate
             throw new ApiException('not_found', 'Not found.', 404);
         }
     }
+
+    public static function global(string $handle): void
+    {
+        if (! ResourceConfig::enabled('globals', $handle)) {
+            throw new ApiException('not_found', 'Not found.', 404);
+        }
+    }
 }
