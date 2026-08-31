@@ -40,4 +40,11 @@ final class ResourceGate
             throw new ApiException('not_found', 'Not found.', 404);
         }
     }
+
+    public static function form(string $handle): void
+    {
+        if (! ResourceConfig::enabled('forms', $handle)) {
+            throw new ApiException('not_found', 'Not found.', 404);
+        }
+    }
 }

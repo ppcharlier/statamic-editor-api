@@ -14,6 +14,8 @@ final class PermissionMap
 
     private const NAV_ACTIONS = ['view', 'edit'];
 
+    private const FORM_SUBMISSION_ACTIONS = ['view', 'delete'];
+
     public static function entries(string $action, string $collection): string
     {
         self::assertAction($action, self::ENTRY_ACTIONS);
@@ -45,6 +47,13 @@ final class PermissionMap
         self::assertAction($action, self::NAV_ACTIONS);
 
         return "{$action} {$nav} nav";
+    }
+
+    public static function formSubmissions(string $action, string $form): string
+    {
+        self::assertAction($action, self::FORM_SUBMISSION_ACTIONS);
+
+        return "{$action} {$form} form submissions";
     }
 
     private static function assertAction(string $action, array $allowed): void

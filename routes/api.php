@@ -7,6 +7,7 @@ use Ppcharlier\StatamicEditorApi\Http\Blueprints\BlueprintsController;
 use Ppcharlier\StatamicEditorApi\Http\Config\ConfigController;
 use Ppcharlier\StatamicEditorApi\Http\Entries\EntriesController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
+use Ppcharlier\StatamicEditorApi\Http\Forms\FormsController;
 use Ppcharlier\StatamicEditorApi\Http\Navigations\NavigationsController;
 use Ppcharlier\StatamicEditorApi\Http\Terms\TermsController;
 
@@ -60,6 +61,10 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::get('navigations', [NavigationsController::class, 'index'])->name('navigations.index');
     Route::get('navigations/{handle}/tree', [NavigationsController::class, 'show'])->name('navigations.tree.show');
     Route::patch('navigations/{handle}/tree', [NavigationsController::class, 'update'])->name('navigations.tree.update');
+
+    Route::get('forms', [FormsController::class, 'index'])->name('forms.index');
+    Route::get('forms/{form}/submissions', [FormsController::class, 'submissions'])->name('forms.submissions.index');
+    Route::delete('forms/{form}/submissions/{id}', [FormsController::class, 'destroySubmission'])->name('forms.submissions.destroy');
 });
 
 if (app()->runningUnitTests()) {
