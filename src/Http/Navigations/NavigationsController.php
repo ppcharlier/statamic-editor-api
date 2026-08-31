@@ -44,17 +44,38 @@ final class NavigationsController
 
         $normalized = NavTreeSerializer::fromApi($payload['tree']);
 
-        $tree->tree($normalized);
+        // Server-side parity with the CP (where max_depth is enforced in JS only).
+        if (($max = $nav->maxDepth()) && $this->depth($normalized) > $max) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'tree' => ["The tree exceeds this navigation's max_depth of {$max}."],
+            ]);
+        }
+
+        // Mutate a clone: a 422 must never leave the shared Stache-cached tree
+        // carrying the rejected value (long-lived workers, same-process readers).
+        $working = clone $tree;
+        $working->tree($normalized);
 
         try {
-            $tree->tree(); // no-arg getter: triggers Structure::validateTree on the value just set
+            $working->tree(); // no-arg getter: triggers Structure::validateTree on the value just set
         } catch (\Exception $e) {
             throw \Illuminate\Validation\ValidationException::withMessages(['tree' => [$e->getMessage()]]);
         }
 
-        $tree->save(); // outside the catch: a genuine internal failure stays a clean 500
+        $working->save(); // outside the catch: a genuine internal failure stays a clean 500
 
         return response()->json(['data' => $this->payload($nav, $nav->in(Site::default()->handle()))]);
+    }
+
+    private function depth(array $tree): int
+    {
+        $max = 0;
+
+        foreach ($tree as $node) {
+            $max = max($max, 1 + $this->depth($node['children'] ?? []));
+        }
+
+        return $max;
     }
 
     private function resolve(string $handle): array

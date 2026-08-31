@@ -131,3 +131,65 @@ it('404s an unknown navigation and applies whitelist + permissions', function ()
         ->patchJson('/api/editor/v1/navigations/main/tree', ['tree' => []])
         ->assertStatus(403);
 });
+
+it('422s a tree deeper than max_depth instead of trusting the client', function () {
+    $nav = Nav::make('limited')->title('Limité')->maxDepth(2);
+    $nav->save();
+    $nav->makeTree(Site::default()->handle(), [
+        ['id' => 'branche-1', 'title' => 'Un', 'url' => '/un'],
+        ['id' => 'branche-2', 'title' => 'Deux', 'url' => '/deux'],
+    ])->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/navigations/limited/tree', ['tree' => [
+            ['id' => 'branche-1', 'title' => 'N1', 'url' => '/1', 'children' => [
+                ['id' => 'branche-2', 'title' => 'N2', 'url' => '/2', 'children' => [
+                    ['id' => 'branche-3', 'title' => 'N3', 'url' => '/3'],
+                ]],
+            ]],
+        ]])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']])
+        ->assertJsonStructure(['error' => ['errors' => ['tree']]]);
+
+    // l'arbre n'a pas bougé
+    $this->withToken($this->token)
+        ->getJson('/api/editor/v1/navigations/limited/tree')
+        ->assertJsonPath('data.tree.0.id', 'branche-1')
+        ->assertJsonPath('data.tree.1.id', 'branche-2');
+});
+
+it('accepts a tree at exactly max_depth', function () {
+    $nav = Nav::make('limited')->title('Limité')->maxDepth(2);
+    $nav->save();
+    $nav->makeTree(Site::default()->handle(), [
+        ['id' => 'branche-1', 'title' => 'Un', 'url' => '/un'],
+    ])->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/navigations/limited/tree', ['tree' => [
+            ['id' => 'branche-1', 'title' => 'N1', 'url' => '/1', 'children' => [
+                ['id' => 'branche-2', 'title' => 'N2', 'url' => '/2'],
+            ]],
+        ]])->assertOk();
+});
+
+it('keeps the shared cached tree intact when validation fails', function () {
+    // Le validateTree vendor refuse un enfant sous une branche root (expectsRoot).
+    $nav = Nav::make('rooted')->title('Rooté')->expectsRoot(true);
+    $nav->save();
+    $nav->makeTree(Site::default()->handle(), [
+        ['id' => 'branche-1', 'title' => 'Root', 'url' => '/'],
+        ['id' => 'branche-2', 'title' => 'Page', 'url' => '/page'],
+    ])->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/navigations/rooted/tree', ['tree' => [
+            ['id' => 'branche-1', 'title' => 'Root', 'url' => '/', 'children' => [
+                ['id' => 'branche-2', 'title' => 'Interdit', 'url' => '/x'],
+            ]],
+        ]])->assertStatus(422);
+
+    // Relire DANS LE MÊME process : l'arbre en cache Stache ne doit pas porter la mutation refusée.
+    expect(Nav::findByHandle('rooted')->in(Site::default()->handle())->tree())
+        ->toHaveCount(2);
+});
