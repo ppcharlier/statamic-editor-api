@@ -76,6 +76,16 @@ final class AssetsController
         return response()->json(['data' => AssetResource::toArray($asset)], 201);
     }
 
+    public function show(Request $request, $container, string $path)
+    {
+        ResourceGate::assetContainer($handle = $container->handle());
+        Guard::check($request->user(), PermissionMap::assets('view', $handle));
+
+        $asset = $this->findAsset($container, $path);
+
+        return response()->json(['data' => AssetResource::toArray($asset)]);
+    }
+
     public function update(Request $request, $container, string $path)
     {
         ResourceGate::assetContainer($handle = $container->handle());
