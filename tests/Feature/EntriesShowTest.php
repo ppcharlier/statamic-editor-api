@@ -2,6 +2,7 @@
 
 use Ppcharlier\StatamicEditorApi\Tests\Support\BuildsEntryFixtures;
 use Statamic\Facades\Entry;
+use Statamic\Facades\Site;
 
 uses(BuildsEntryFixtures::class);
 
@@ -77,6 +78,34 @@ it('never leaks internal bookkeeping keys into data', function () {
         ->assertOk();
 
     expect($response->json('data.data'))->not->toHaveKeys(['updated_by', 'updated_at', 'slug', 'date']);
+});
+
+it('locks the mono-site localizations shape to just itself', function () {
+    // Regression test for the EntryResource::detail() hang fixed at commit 0c05202:
+    // mono-site must short-circuit through EntryResource::localizations() without ever
+    // calling root()/descendants(), returning the entry as its own sole localization.
+    // This is the branch that protects the whole (mono-site) Feature suite from that hang.
+    //
+    // A companion regression test constructing an actual persisted cyclic origin chain
+    // (multi-site) was attempted and parked: a genuinely cyclic origin, once persisted,
+    // already breaks vendor Statamic itself before any of our code runs — Statamic\Data\
+    // HasOrigin::value()/keys()/values() (vendor/statamic/cms/src/Data/HasOrigin.php)
+    // unconditionally recurse through origin() on every read, so any entry with a cyclic
+    // origin chain crashes on the very first field access, regardless of our fix. That
+    // makes an HTTP-level "200 with well-formed localizations" test for a live cyclic
+    // chain infeasible — Statamic cannot deliver that response for such an entry at all.
+    // The safeRoot()/localizations() guard added in 0c05202 still matters (it protects the
+    // specific graph shape seen in the original RevisionsTest hang — see task-3-report.md
+    // for the A/B evidence), it's just that a literal mutual-origin cycle isn't a
+    // reachable-via-HTTP scenario to assert 200 on.
+    $response = $this->withToken($this->token)
+        ->getJson('/api/editor/v1/entries/'.$this->entry->id())
+        ->assertOk();
+
+    expect($response->json('data.site'))->toBe(Site::default()->handle())
+        ->and($response->json('data.localizations'))->toBe([
+            ['site' => Site::default()->handle(), 'id' => $this->entry->id()],
+        ]);
 });
 
 it('round-trips GET data straight into PATCH data', function () {
