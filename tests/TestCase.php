@@ -19,5 +19,9 @@ abstract class TestCase extends AddonTestCase
         $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('statamic.editions.pro', true);
         $app['config']->set('statamic.editor-api.storage_path', sys_get_temp_dir().'/editor-api-tests/'.uniqid());
+
+        // Blueprints saved during a test otherwise land in testbench's shared
+        // resources/blueprints and leak into every later test of the process.
+        $app['config']->set('statamic.system.blueprints_path', sys_get_temp_dir().'/editor-api-tests-blueprints/'.uniqid());
     }
 }

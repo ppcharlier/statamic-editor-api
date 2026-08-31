@@ -13,6 +13,7 @@ final class TermResource
         return [
             'id' => $term->id(),
             'taxonomy' => $term->taxonomy()->handle(),
+            'blueprint' => $term->blueprint()->handle(),
             'slug' => $term->slug(),
             'title' => $term->title(),
             'published' => (bool) $term->published(),

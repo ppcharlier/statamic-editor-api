@@ -62,11 +62,12 @@ final class TermsController
 
         $payload = $request->validate([
             'slug' => ['required', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, site: Site::default()->handle())],
+            'blueprint' => ['sometimes', 'string', 'max:100'],
             'published' => ['sometimes', 'boolean'],
             'data' => ['required', 'array'],
         ]);
 
-        $blueprint = $taxonomy->termBlueprints()->first();
+        $blueprint = $this->resolveBlueprint($taxonomy, $payload['blueprint'] ?? null);
         UnknownFields::reject($payload['data'], $blueprint->fields()->all()->keys()->all());
 
         // The blueprint always carries an ensured 'slug' field (see
@@ -81,6 +82,11 @@ final class TermsController
         $fields->validator()->validate();
 
         $term = Term::make($payload['slug'])->taxonomy($taxonomy);
+
+        if (isset($payload['blueprint'])) {
+            $term->blueprint($payload['blueprint']);
+        }
+
         $localized = $term->in($site = Site::default()->handle());
         $localized->merge($fields->process()->values()->except('slug')->all());
         $localized->published($payload['published'] ?? $taxonomy->defaultPublishState());
@@ -114,9 +120,15 @@ final class TermsController
 
         $payload = $request->validate([
             'slug' => ['sometimes', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, except: $term->id(), site: Site::default()->handle())],
+            'blueprint' => ['sometimes', 'string', 'max:100'],
             'published' => ['sometimes', 'boolean'],
             'data' => ['required', 'array'],
         ]);
+
+        if (isset($payload['blueprint'])) {
+            $this->resolveBlueprint($taxonomy, $payload['blueprint']); // 422 hors set
+            $term->blueprint($payload['blueprint']);
+        }
 
         $blueprint = $term->blueprint();
         UnknownFields::reject($payload['data'], array_diff($blueprint->fields()->all()->keys()->all(), ['slug']));
@@ -142,6 +154,24 @@ final class TermsController
         // Term::slug()'s setter normalizes away, so a literal client string can miss
         // the record it just renamed and produce a false 404 on a successful write.
         return response()->json(['data' => TermResource::toArray($this->findTerm($taxonomy, $term->slug()))]);
+    }
+
+    private function resolveBlueprint($taxonomy, ?string $handle)
+    {
+        if ($handle === null) {
+            return $taxonomy->termBlueprints()->first();
+        }
+
+        $blueprint = $taxonomy->termBlueprints()->first(fn ($bp) => $bp->handle() === $handle);
+
+        if (! $blueprint) {
+            throw new \Ppcharlier\StatamicEditorApi\Http\Errors\ApiException(
+                'validation_failed', 'The given data was invalid.', 422,
+                ['blueprint' => ["Blueprint [{$handle}] is not in this taxonomy's set."]],
+            );
+        }
+
+        return $blueprint;
     }
 
     public function destroy(Request $request, $taxonomy, string $slug)

@@ -21,7 +21,10 @@ final class TaxonomiesController
             ->map(fn ($taxonomy) => [
                 'handle' => $taxonomy->handle(),
                 'title' => $taxonomy->title(),
+                // 'blueprint' (premier du set) reste pour compat ; 'blueprints' expose le set complet.
                 'blueprint' => CompactBlueprintSerializer::serialize($taxonomy->termBlueprints()->first()),
+                'blueprints' => $taxonomy->termBlueprints()
+                    ->map(fn ($bp) => CompactBlueprintSerializer::serialize($bp))->values()->all(),
             ])
             ->values()->all();
 

@@ -117,3 +117,58 @@ it('enforces permissions and whitelist', function () {
     config()->set('statamic.editor-api.resources.taxonomies', ['autres']);
     $this->withToken($this->token)->getJson('/api/editor/v1/taxonomies/themes/terms')->assertStatus(404);
 });
+
+function addPersonBlueprint(): void
+{
+    Blueprint::make('writer')
+        ->setNamespace('taxonomies.themes')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'title', 'field' => ['type' => 'text', 'validate' => ['required']]],
+            ['handle' => 'bio', 'field' => ['type' => 'textarea']],
+        ]]]]]])
+        ->save();
+}
+
+it('creates a term with an explicit blueprint from the set', function () {
+    addPersonBlueprint();
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/taxonomies/themes/terms', [
+            'slug' => 'victor-hugo', 'blueprint' => 'writer',
+            'data' => ['title' => 'Victor Hugo', 'bio' => 'Écrivain.'],
+        ])->assertStatus(201)
+        ->assertJsonPath('data.blueprint', 'writer')
+        ->assertJsonPath('data.data.bio', 'Écrivain.');
+
+    expect(Term::find('themes::victor-hugo')->blueprint()->handle())->toBe('writer');
+});
+
+it('422s a blueprint outside the set', function () {
+    addPersonBlueprint();
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/taxonomies/themes/terms', [
+            'slug' => 'x', 'blueprint' => 'nope',
+            'data' => ['title' => 'X'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']])
+        ->assertJsonStructure(['error' => ['errors' => ['blueprint']]]);
+});
+
+it('validates data against the chosen blueprint, not the first of the set', function () {
+    addPersonBlueprint();
+
+    // bio n'existe pas dans le blueprint 'theme' (premier) mais existe dans 'writer'
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/taxonomies/themes/terms', [
+            'slug' => 'sans-blueprint', 'data' => ['title' => 'X', 'bio' => 'refusé'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'unknown_field']]);
+});
+
+it('exposes the blueprint handle in term listings', function () {
+    $this->withToken($this->token)
+        ->getJson('/api/editor/v1/taxonomies/themes/terms')
+        ->assertOk()
+        ->assertJsonPath('data.0.blueprint', 'theme');
+});

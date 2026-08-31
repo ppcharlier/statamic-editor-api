@@ -62,3 +62,21 @@ it('excludes taxonomies outside the whitelist', function () {
 
     expect($response->json('data'))->toBe([]);
 });
+
+it('exposes every blueprint of the set in blueprints, keeping blueprint as the first', function () {
+    Blueprint::make('writer')
+        ->setNamespace('taxonomies.themes')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'title', 'field' => ['type' => 'text', 'validate' => ['required']]],
+            ['handle' => 'bio', 'field' => ['type' => 'textarea']],
+        ]]]]]])
+        ->save();
+
+    $taxonomy = collect($this->withToken($this->token)
+        ->getJson('/api/editor/v1/taxonomies')
+        ->assertOk()
+        ->json('data'))->firstWhere('handle', 'themes');
+
+    expect(collect($taxonomy['blueprints'])->pluck('handle')->all())->toBe(['theme', 'writer'])
+        ->and($taxonomy['blueprint']['handle'])->toBe('theme'); // compat : premier du set
+});
