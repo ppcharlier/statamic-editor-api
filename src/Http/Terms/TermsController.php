@@ -80,4 +80,50 @@ final class TermsController
 
         return response()->json(['data' => TermResource::toArray($term->in($site))], 201);
     }
+
+    public function update(Request $request, $taxonomy, string $slug)
+    {
+        ResourceGate::taxonomy($handle = $taxonomy->handle());
+        Guard::check($request->user(), PermissionMap::terms('edit', $handle));
+
+        $term = $this->findTerm($taxonomy, $slug);
+
+        $payload = $request->validate([
+            'slug' => ['sometimes', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, except: $term->id(), site: Site::default()->handle())],
+            'published' => ['sometimes', 'boolean'],
+            'data' => ['required', 'array'],
+        ]);
+
+        $blueprint = $term->blueprint();
+        UnknownFields::reject($payload['data'], array_diff($blueprint->fields()->all()->keys()->all(), ['slug']));
+
+        $fields = $blueprint->fields()->except(['slug'])->addValues($payload['data']);
+        $fields->validator()->validate();
+
+        $term->merge($fields->process()->values()->all());
+
+        if (array_key_exists('published', $payload)) {
+            $term->published($payload['published']);
+        }
+
+        if (array_key_exists('slug', $payload)) {
+            $term->slug($payload['slug']);
+        }
+
+        $term->save();
+
+        return response()->json(['data' => TermResource::toArray($this->findTerm($taxonomy, $payload['slug'] ?? $slug))]);
+    }
+
+    public function destroy(Request $request, $taxonomy, string $slug)
+    {
+        ResourceGate::taxonomy($handle = $taxonomy->handle());
+        Guard::check($request->user(), PermissionMap::terms('delete', $handle));
+
+        $term = $this->findTerm($taxonomy, $slug);
+
+        Term::delete($term->term());
+
+        return response()->noContent();
+    }
 }

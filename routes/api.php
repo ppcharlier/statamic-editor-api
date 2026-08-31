@@ -53,6 +53,8 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
 
     Route::get('taxonomies/{taxonomy}/terms', [TermsController::class, 'index'])->name('terms.index');
     Route::post('taxonomies/{taxonomy}/terms', [TermsController::class, 'store'])->name('terms.store');
+    Route::patch('taxonomies/{taxonomy}/terms/{slug}', [TermsController::class, 'update'])->name('terms.update');
+    Route::delete('taxonomies/{taxonomy}/terms/{slug}', [TermsController::class, 'destroy'])->name('terms.destroy');
 });
 
 if (app()->runningUnitTests()) {
