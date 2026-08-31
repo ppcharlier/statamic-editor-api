@@ -27,6 +27,23 @@ it('creates a linked localization inheriting from its origin', function () {
         ->and($localization->value('title'))->toBe('Origine'); // hérité tant que non surchargé
 });
 
+it('returns an empty data map on a fresh localization', function () {
+    // Arbitrage v1.2, verrouillé ici (spec §9 « Écarts ») : `detail.data` expose les
+    // SURCHARGES PROPRES de la localisation, pas ses valeurs effectives. Une localisation
+    // fraîchement créée n'a aucune surcharge → `data` vide, tandis que les champs
+    // top-level (title, published…) portent bien les valeurs héritées de l'origine ; les
+    // valeurs effectives se lisent via l'origine (carte `localizations`). Corollaire
+    // assumé : l'invariant « GET data → PATCH data » ne vaut PAS pour une localisation
+    // fraîche — la ré-émettre telle quelle 422 sur les champs requis hérités.
+    $created = $this->withToken($this->token)
+        ->postJson('/api/editor/v1/entries/'.$this->entry->id().'/localizations', ['site' => 'fr'])
+        ->assertStatus(201)->json('data');
+
+    expect($created['data'])->toBe([])
+        ->and($created['title'])->toBe('Origine') // hérité, exposé en top-level
+        ->and($created['site'])->toBe('fr');
+});
+
 it('409s when the localization already exists', function () {
     tap($this->entry->makeLocalization('fr'))->save();
 
