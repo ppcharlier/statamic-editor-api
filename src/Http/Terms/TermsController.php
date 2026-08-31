@@ -6,9 +6,9 @@ use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
+use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
-use Statamic\Facades\Site;
 use Statamic\Facades\Term;
 use Statamic\Rules\Slug;
 use Statamic\Rules\UniqueTermValue;
@@ -19,6 +19,7 @@ final class TermsController
 
     public function index(Request $request, $taxonomy)
     {
+        $site = SiteResolver::resolve($request, $taxonomy->sites()->all());
         ResourceGate::taxonomy($handle = $taxonomy->handle());
         Guard::check($request->user(), PermissionMap::terms('view', $handle));
 
@@ -44,7 +45,7 @@ final class TermsController
 
         return response()->json([
             'data' => collect($paginator->items())
-                ->map(fn ($t) => TermResource::toArray($t->in(Site::default()->handle())))
+                ->map(fn ($t) => TermResource::toArray($t->in($site)))
                 ->values()->all(),
             'meta' => [
                 'total' => $paginator->total(),
@@ -57,11 +58,12 @@ final class TermsController
 
     public function store(Request $request, $taxonomy)
     {
+        $site = SiteResolver::resolve($request, $taxonomy->sites()->all());
         ResourceGate::taxonomy($handle = $taxonomy->handle());
         Guard::check($request->user(), PermissionMap::terms('create', $handle));
 
         $payload = $request->validate([
-            'slug' => ['required', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, site: Site::default()->handle())],
+            'slug' => ['required', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, site: $site)],
             'blueprint' => ['sometimes', 'string', 'max:100'],
             'published' => ['sometimes', 'boolean'],
             'data' => ['required', 'array'],
@@ -87,9 +89,24 @@ final class TermsController
             $term->blueprint($payload['blueprint']);
         }
 
-        $localized = $term->in($site = Site::default()->handle());
-        $localized->merge($fields->process()->values()->except('slug')->all());
-        $localized->published($payload['published'] ?? $taxonomy->defaultPublishState());
+        $values = $fields->process()->values()->except('slug')->all();
+        $published = $payload['published'] ?? $taxonomy->defaultPublishState();
+
+        // A term's file always keeps the taxonomy's default-site data as its base
+        // (Statamic\Taxonomies\Term::fileData() unconditionally pulls it out to build
+        // the file), so a brand-new term with no data at all for the default site can't
+        // be saved — the write blows up. Statamic's own CP TermsController::store()
+        // works around this the same way when creating directly in a non-default site:
+        // copy the same values into the default localization too before saving.
+        $defaultSite = $taxonomy->sites()->first();
+
+        if ($site !== $defaultSite) {
+            $term->in($defaultSite)->merge($values)->published($published);
+        }
+
+        $localized = $term->in($site);
+        $localized->merge($values);
+        $localized->published($published);
         $localized->save();
 
         return response()->json(['data' => TermResource::toArray($term->in($site))], 201);
@@ -97,10 +114,11 @@ final class TermsController
 
     public function update(Request $request, $taxonomy, string $slug)
     {
+        $site = SiteResolver::resolve($request, $taxonomy->sites()->all());
         ResourceGate::taxonomy($handle = $taxonomy->handle());
         Guard::check($request->user(), PermissionMap::terms('edit', $handle));
 
-        $term = $this->findTerm($taxonomy, $slug);
+        $term = $this->findTerm($taxonomy, $slug, $site);
 
         // Stache returns the SAME cached PHP object on every lookup within this process.
         // Cloning detaches us from that shared reference so our mutations below (notably
@@ -119,7 +137,7 @@ final class TermsController
         $term->term()->syncOriginal();
 
         $payload = $request->validate([
-            'slug' => ['sometimes', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, except: $term->id(), site: Site::default()->handle())],
+            'slug' => ['sometimes', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, except: $term->id(), site: $site)],
             'blueprint' => ['sometimes', 'string', 'max:100'],
             'published' => ['sometimes', 'boolean'],
             'data' => ['required', 'array'],
@@ -153,7 +171,7 @@ final class TermsController
         // Slug validation rule permits characters (e.g. uppercase, underscores) that
         // Term::slug()'s setter normalizes away, so a literal client string can miss
         // the record it just renamed and produce a false 404 on a successful write.
-        return response()->json(['data' => TermResource::toArray($this->findTerm($taxonomy, $term->slug()))]);
+        return response()->json(['data' => TermResource::toArray($this->findTerm($taxonomy, $term->slug(), $site))]);
     }
 
     private function resolveBlueprint($taxonomy, ?string $handle)
