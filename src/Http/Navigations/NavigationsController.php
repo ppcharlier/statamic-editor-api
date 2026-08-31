@@ -44,11 +44,15 @@ final class NavigationsController
 
         $normalized = NavTreeSerializer::fromApi($payload['tree']);
 
+        $tree->tree($normalized);
+
         try {
-            $tree->tree($normalized)->save();
-        } catch (\Throwable $e) {
+            $tree->tree(); // no-arg getter: triggers Structure::validateTree on the value just set
+        } catch (\Exception $e) {
             throw \Illuminate\Validation\ValidationException::withMessages(['tree' => [$e->getMessage()]]);
         }
+
+        $tree->save(); // outside the catch: a genuine internal failure stays a clean 500
 
         return response()->json(['data' => $this->payload($nav, $nav->in(Site::default()->handle()))]);
     }

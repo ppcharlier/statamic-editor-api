@@ -67,6 +67,17 @@ it('rejects a node with neither entry nor title/url', function () {
         ->assertJson(['error' => ['code' => 'validation_failed']]);
 });
 
+it('422s a tree violating expectsRoot instead of 500ing', function () {
+    tap(Nav::findByHandle('main')->expectsRoot(true))->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/navigations/main/tree', ['tree' => [
+            ['title' => 'Racine', 'url' => '/', 'children' => [['title' => 'Interdit', 'url' => '/x']]],
+            ['title' => 'Autre', 'url' => '/autre'],
+        ]])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']]);
+});
+
 it('404s an unknown navigation and applies whitelist + permissions', function () {
     $this->withToken($this->token)->getJson('/api/editor/v1/navigations/nope/tree')->assertStatus(404);
 
