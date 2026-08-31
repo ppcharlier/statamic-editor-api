@@ -5,6 +5,7 @@ namespace Ppcharlier\StatamicEditorApi\Http\Entries;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Arr;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
+use Statamic\Facades\Site;
 
 final class EntryResource
 {
@@ -37,11 +38,56 @@ final class EntryResource
             'blueprint' => $working->blueprint()->handle(),
             'data' => Arr::only($working->data()->all(), $allowed),
             'site' => $entry->locale(),
-            'localizations' => $entry->root()->descendants()
-                ->push($entry->root())
-                ->map(fn ($loc) => ['site' => $loc->locale(), 'id' => $loc->id()])
-                ->unique('site')->values()->all(),
+            'localizations' => self::localizations($entry),
         ]);
+    }
+
+    /**
+     * Mono-site short-circuits without ever touching root()/descendants(): those
+     * walk the origin/localization graph via vendor Entry::save()'s own recursive
+     * directDescendants()->each->save() machinery, which — at least in the
+     * revisions/working-copy flow exercised here — can leave the graph in a state
+     * where HasOrigin::root()'s unguarded `while ($e->hasOrigin()) $e = $e->origin();`
+     * (vendor/statamic/cms/src/Data/HasOrigin.php) never terminates. A mono-site
+     * entry has exactly one localization: itself.
+     */
+    private static function localizations($entry): array
+    {
+        if (! Site::hasMultiple()) {
+            return [['site' => $entry->locale(), 'id' => $entry->id()]];
+        }
+
+        $root = self::safeRoot($entry);
+
+        return $root->descendants()
+            ->push($root)
+            ->map(fn ($loc) => ['site' => $loc->locale(), 'id' => $loc->id()])
+            ->unique('site')->values()->all();
+    }
+
+    /**
+     * Cycle-safe equivalent of HasOrigin::root() — ascends the origin chain but
+     * stops (instead of looping forever) if an id repeats. descendants() itself is
+     * safe to call on the result: vendor's Entry::descendants() already tracks a
+     * $seen list of visited ids over its breadth-first walk.
+     */
+    private static function safeRoot($entry)
+    {
+        $seen = [$entry->id() => true];
+        $current = $entry;
+
+        while ($current->hasOrigin()) {
+            $next = $current->origin();
+
+            if (isset($seen[$next->id()])) {
+                break;
+            }
+
+            $seen[$next->id()] = true;
+            $current = $next;
+        }
+
+        return $current;
     }
 
     public static function effectiveLastModified($entry): ?CarbonInterface
