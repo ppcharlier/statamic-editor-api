@@ -214,31 +214,6 @@ final class EntriesController
         return response()->noContent();
     }
 
-    private function guardAgainstConflict(Request $request, $entry): void
-    {
-        if (! $header = $request->header('X-Base-Modified')) {
-            return;
-        }
-
-        try {
-            $base = \Carbon\CarbonImmutable::parse($header);
-        } catch (\Throwable) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'X-Base-Modified' => ['Must be a valid ISO-8601 datetime.'],
-            ]);
-        }
-
-        $current = EntryResource::effectiveLastModified($entry);
-
-        if ($current && $current->startOfSecond()->gt($base->startOfSecond())) {
-            throw new \Ppcharlier\StatamicEditorApi\Http\Errors\ApiException(
-                'conflict',
-                'The entry was modified since your last read. Reload it or overwrite by resending without the header.',
-                409,
-            );
-        }
-    }
-
     private function rejectUnknownFields(array $data, $blueprint): void
     {
         $meta = array_values(array_intersect(array_keys($data), MetaFields::HANDLES));

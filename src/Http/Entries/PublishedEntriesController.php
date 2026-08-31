@@ -16,6 +16,10 @@ final class PublishedEntriesController
     {
         $entry = $this->guarded($request, $id);
 
+        // Publishing overwrites the live entry from the working copy — a stale
+        // client deserves the same 409 protection as PATCH.
+        $this->guardAgainstConflict($request, $entry);
+
         if ($entry->published() && (! $entry->revisionsEnabled() || ! $entry->hasWorkingCopy())) {
             throw new ApiException('nothing_to_publish', 'There are no unpublished changes to publish.', 422);
         }

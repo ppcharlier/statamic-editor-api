@@ -62,3 +62,41 @@ it('422s an unparseable header', function () {
         ])->assertStatus(422)
         ->assertJson(['error' => ['code' => 'validation_failed']]);
 });
+
+it('409s a publish when the entry changed after the client base', function () {
+    // Un brouillon existe (sinon nothing_to_publish court-circuite la garde)
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->entry->id(), ['data' => ['title' => 'Brouillon']])
+        ->assertOk();
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/entries/'.$this->entry->id().'/published', [], [
+            'X-Base-Modified' => now()->subHour()->toIso8601String(),
+        ])->assertStatus(409)
+        ->assertJson(['error' => ['code' => 'conflict']]);
+});
+
+it('publishes when the base is current', function () {
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->entry->id(), ['data' => ['title' => 'Brouillon']])
+        ->assertOk();
+
+    $base = $this->withToken($this->token)
+        ->getJson('/api/editor/v1/entries/'.$this->entry->id())
+        ->json('data.last_modified');
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/entries/'.$this->entry->id().'/published', [], [
+            'X-Base-Modified' => $base,
+        ])->assertOk();
+});
+
+it('publishes without the header as before', function () {
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->entry->id(), ['data' => ['title' => 'Brouillon']])
+        ->assertOk();
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/entries/'.$this->entry->id().'/published', [])
+        ->assertOk();
+});
