@@ -88,6 +88,22 @@ final class TermsController
 
         $term = $this->findTerm($taxonomy, $slug);
 
+        // Stache returns the SAME cached PHP object on every lookup within this process.
+        // Cloning detaches us from that shared reference so our mutations below (notably
+        // the slug rename) don't corrupt what Stache still has cached for the old slug —
+        // otherwise, when a slug rename triggers TaxonomyTermsStore::save()'s internal
+        // `Term::find($oldSlugKey)` (to locate and delete the old record), that lookup
+        // would cache-hit our already-mutated instance instead of the untouched original,
+        // and the old slug's file/index entry would be left behind as an orphan.
+        $term = clone $term;
+
+        // Snapshots the pre-mutation state (crucially the current slug) so that, if the
+        // slug is renamed below, TaxonomyTermsStore::save() can detect the change via
+        // $term->getOriginal('slug') and clean up the term stored under the old slug
+        // (verified against vendor: Statamic's own CP TermsController::update() does
+        // the same right after resolving the term, before any mutation).
+        $term->term()->syncOriginal();
+
         $payload = $request->validate([
             'slug' => ['sometimes', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, except: $term->id(), site: Site::default()->handle())],
             'published' => ['sometimes', 'boolean'],
@@ -112,7 +128,12 @@ final class TermsController
 
         $term->save();
 
-        return response()->json(['data' => TermResource::toArray($this->findTerm($taxonomy, $payload['slug'] ?? $slug))]);
+        // Re-resolve using $term->slug() (the actual, Str::slug()-normalized value the
+        // save just wrote) rather than the raw client-supplied $payload['slug']: the
+        // Slug validation rule permits characters (e.g. uppercase, underscores) that
+        // Term::slug()'s setter normalizes away, so a literal client string can miss
+        // the record it just renamed and produce a false 404 on a successful write.
+        return response()->json(['data' => TermResource::toArray($this->findTerm($taxonomy, $term->slug()))]);
     }
 
     public function destroy(Request $request, $taxonomy, string $slug)

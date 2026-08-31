@@ -40,6 +40,23 @@ it('renames the slug', function () {
         ->assertJsonPath('data.slug', 'philo');
 
     expect(Term::find('themes::philo'))->not->toBeNull();
+    expect(Term::find('themes::philosophie'))->toBeNull();
+});
+
+it('normalizes an uppercase slug on rename and still returns 200', function () {
+    // Statamic\Support\Str::slug() lowercases but deliberately preserves underscores
+    // ("Statamic is a-OK with underscores in slugs" — see vendor source), so the
+    // normalized form of 'Philo_Nouvelle' is 'philo_nouvelle', not 'philo-nouvelle'.
+    // The case change alone is enough to make the raw client string diverge from the
+    // normalized slug, which is what this test guards against.
+    $response = $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/taxonomies/themes/terms/philosophie', [
+            'slug' => 'Philo_Nouvelle',
+            'data' => ['title' => 'Philosophie'],
+        ])->assertOk();
+
+    expect($response->json('data.slug'))->toBe('philo_nouvelle');
+    expect(Term::find('themes::philo_nouvelle'))->not->toBeNull();
 });
 
 it('rejects slug inside data', function () {
