@@ -13,7 +13,7 @@ final class RevisionResource
             'action' => $revision->action(),
             'date' => $revision->date()->toIso8601String(),
             'message' => $revision->message(),
-            'user' => $user ? ['id' => $user->id(), 'name' => $user->name(), 'email' => $user->email()] : null,
+            'user' => $user ? ['id' => (string) $user->id(), 'name' => $user->name(), 'email' => $user->email()] : null,
         ];
     }
 }

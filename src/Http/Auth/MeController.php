@@ -11,7 +11,7 @@ final class MeController
         $user = $request->user();
 
         return response()->json(['data' => [
-            'id' => $user->id(),
+            'id' => (string) $user->id(), // Eloquent users have integer keys; the contract is a string id.
             'name' => $user->name(),
             'email' => $user->email(),
             'avatar' => $user->avatar(),
