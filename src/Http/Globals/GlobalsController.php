@@ -21,7 +21,7 @@ final class GlobalsController
 
         $sets = GlobalSet::all()
             ->filter(fn ($set) => ResourceConfig::enabled('globals', $set->handle()))
-            ->filter(fn ($set) => $user->isSuper() || $user->hasPermission(PermissionMap::globals($set->handle())))
+            ->filter(fn ($set) => Guard::allows($user, PermissionMap::globals($set->handle())))
             ->map(fn ($set) => ['handle' => $set->handle(), 'title' => $set->title()])
             ->values()->all();
 

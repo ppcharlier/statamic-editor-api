@@ -9,6 +9,7 @@ use Ppcharlier\StatamicEditorApi\Http\Entries\EntriesController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 use Ppcharlier\StatamicEditorApi\Http\Forms\FormsController;
 use Ppcharlier\StatamicEditorApi\Http\Navigations\NavigationsController;
+use Ppcharlier\StatamicEditorApi\Http\Terms\TaxonomiesController;
 use Ppcharlier\StatamicEditorApi\Http\Terms\TermsController;
 
 Route::post('auth/tokens', [TokensController::class, 'store'])
@@ -52,6 +53,8 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::get('globals', [\Ppcharlier\StatamicEditorApi\Http\Globals\GlobalsController::class, 'index'])->name('globals.index');
     Route::get('globals/{global}', [\Ppcharlier\StatamicEditorApi\Http\Globals\GlobalsController::class, 'show'])->name('globals.show');
     Route::patch('globals/{global}', [\Ppcharlier\StatamicEditorApi\Http\Globals\GlobalsController::class, 'update'])->name('globals.update');
+
+    Route::get('taxonomies', [TaxonomiesController::class, 'index'])->name('taxonomies.index');
 
     Route::get('taxonomies/{taxonomy}/terms', [TermsController::class, 'index'])->name('terms.index');
     Route::post('taxonomies/{taxonomy}/terms', [TermsController::class, 'store'])->name('terms.store');

@@ -29,6 +29,22 @@ it('lists navigations', function () {
         ->assertJsonPath('data.0.handle', 'main');
 });
 
+it('filters the navigations list for a non-super token to only permitted navs', function () {
+    $footer = Nav::make('footer')->title('Pied de page');
+    $footer->save();
+    $footer->makeTree(Site::default()->handle(), [
+        ['id' => 'branche-3', 'title' => 'Mentions', 'url' => '/mentions'],
+    ])->save();
+
+    $token = $this->makeTokenWithPermissions(['view main nav']);
+
+    $response = $this->withToken($token)
+        ->getJson('/api/editor/v1/navigations')
+        ->assertOk();
+
+    expect(collect($response->json('data'))->pluck('handle')->all())->toBe(['main']);
+});
+
 it('shows the tree with entry titles resolved', function () {
     $response = $this->withToken($this->token)
         ->getJson('/api/editor/v1/navigations/main/tree')
@@ -57,6 +73,30 @@ it('rewrites the tree', function () {
         ->and($saved[1]['entry'])->toBe($this->entry->id())
         ->and($saved[1]['children'][0]['title'])->toBe('Sous-page')
         ->and($saved[0]['id'] ?? null)->not->toBeNull(); // ids générés
+});
+
+it('round-trips a GET tree through PATCH without losing title overrides or data', function () {
+    Nav::findByHandle('main')->makeTree(Site::default()->handle(), [
+        ['id' => 'branche-1', 'entry' => $this->entry->id(), 'title' => 'Override CP'],
+        ['id' => 'branche-2', 'title' => 'Contact', 'url' => '/contact', 'data' => ['icon' => 'phone']],
+    ])->save();
+
+    $tree = $this->withToken($this->token)
+        ->getJson('/api/editor/v1/navigations/main/tree')
+        ->assertOk()
+        ->json('data.tree');
+
+    // The GET payload includes the entry+title override shape and the raw `data` key —
+    // feeding it straight back into PATCH must not 422, and must not drop either.
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/navigations/main/tree', ['tree' => $tree])
+        ->assertOk();
+
+    $saved = Nav::findByHandle('main')->in(Site::default()->handle())->tree();
+
+    expect($saved[0]['entry'])->toBe($this->entry->id())
+        ->and($saved[0]['title'])->toBe('Override CP')
+        ->and($saved[1]['data'])->toBe(['icon' => 'phone']);
 });
 
 it('rejects a node with neither entry nor title/url', function () {

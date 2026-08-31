@@ -23,6 +23,10 @@ final class NavTreeSerializer
                 $out['entry_title'] = Entry::find($node['entry'])?->value('title');
             }
 
+            if (! empty($node['data'])) {
+                $out['data'] = $node['data'];
+            }
+
             if (! empty($node['children'])) {
                 $out['children'] = self::toApi($node['children']);
             }
@@ -42,9 +46,12 @@ final class NavTreeSerializer
             }
 
             $hasEntry = isset($node['entry']);
-            $hasManual = isset($node['title']) || isset($node['url']);
+            $hasTitle = isset($node['title']);
+            $hasUrl = isset($node['url']);
 
-            if ($hasEntry === $hasManual) {
+            // An entry node may carry a title and/or url override (the CP's own shape).
+            // A non-entry node must still stand on its own via title and/or url.
+            if (! $hasEntry && ! $hasTitle && ! $hasUrl) {
                 throw ValidationException::withMessages([
                     $at => ['Each node needs either an entry reference or a title/url — not both, not neither.'],
                 ]);
@@ -60,6 +67,10 @@ final class NavTreeSerializer
                 if (isset($node[$key])) {
                     $out[$key] = $node[$key];
                 }
+            }
+
+            if (isset($node['data'])) {
+                $out['data'] = $node['data'];
             }
 
             if (! empty($node['children'])) {

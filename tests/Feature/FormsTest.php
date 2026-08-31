@@ -34,6 +34,24 @@ it('lists forms', function () {
         ->assertJsonPath('data.0.handle', 'contact');
 });
 
+it('filters the forms list for a non-super token to only permitted forms', function () {
+    Blueprint::make('newsletter')
+        ->setNamespace('forms')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'email', 'field' => ['type' => 'text']],
+        ]]]]]])
+        ->save();
+    Form::make('newsletter')->title('Newsletter')->save();
+
+    $token = $this->makeTokenWithPermissions(['view contact form submissions']);
+
+    $response = $this->withToken($token)
+        ->getJson('/api/editor/v1/forms')
+        ->assertOk();
+
+    expect(collect($response->json('data'))->pluck('handle')->all())->toBe(['contact']);
+});
+
 it('lists submissions newest first with pagination', function () {
     $response = $this->withToken($this->token)
         ->getJson('/api/editor/v1/forms/contact/submissions')
