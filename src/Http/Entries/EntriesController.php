@@ -13,6 +13,7 @@ use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Ppcharlier\StatamicEditorApi\Support\UniqueUri;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 use Statamic\Facades\Entry;
+use Statamic\Facades\Site;
 use Statamic\Rules\Slug;
 
 final class EntriesController
@@ -71,7 +72,7 @@ final class EntriesController
 
     public function store(Request $request, $collection)
     {
-        $site = SiteResolver::resolve($request, $collection->sites()->all());
+        SiteResolver::resolve($request, $collection->sites()->all());
         ResourceGate::collection($handle = $collection->handle());
 
         $payload = $request->validate([
@@ -89,6 +90,8 @@ final class EntriesController
 
         $blueprint = $collection->entryBlueprint();
         $this->rejectUnknownFields($payload['data'], $blueprint);
+
+        $site = Site::default()->handle();
 
         // The blueprint always carries ensured 'slug' and, for dated collections,
         // 'date' fields (see Statamic\Entries\Collection::ensureEntryBlueprintFields()).
