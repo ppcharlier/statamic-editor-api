@@ -20,6 +20,13 @@ final class CompactBlueprintSerializer
         ];
     }
 
+    // Laravel semantics: a validate STRING is pipe syntax, an array is taken as-is
+    // (which is also where regex rules containing `|` must live).
+    private static function rules(string|array $validate): array
+    {
+        return is_string($validate) ? explode('|', $validate) : $validate;
+    }
+
     private static function field($field): array
     {
         $config = $field->config();
@@ -30,7 +37,7 @@ final class CompactBlueprintSerializer
             'display' => $field->display(),
             'instructions' => $config['instructions'] ?? null,
             'required' => $field->isRequired(),
-            'rules' => (array) ($config['validate'] ?? []),
+            'rules' => self::rules($config['validate'] ?? []),
             // True for handles (slug, date) the API exposes as top-level request/response
             // params rather than inside `data` — the client still gets the field's display
             // config here, but should route its value through the top-level param.

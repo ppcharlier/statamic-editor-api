@@ -24,6 +24,25 @@ it('shows one blueprint in compact form', function () {
         ->and($response->json('data.tabs.0.fields'))->toBeArray();
 });
 
+it('explodes a pipe-delimited validate string into a rules list', function () {
+    \Statamic\Facades\Blueprint::make('piped')
+        ->setNamespace('collections.articles')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'title', 'field' => ['type' => 'text', 'display' => 'Titre', 'validate' => 'required|min:3']],
+            ['handle' => 'body', 'field' => ['type' => 'textarea', 'display' => 'Corps', 'validate' => ['required', 'min:3']]],
+        ]]]]]])
+        ->save();
+
+    $fields = $this->withToken($this->makeSuperToken())
+        ->getJson('/api/editor/v1/collections/articles/blueprints/piped')
+        ->assertOk()
+        ->json('data.tabs.0.fields');
+
+    // String pipe syntax is exploded; the array form passes through untouched.
+    expect($fields[0]['rules'])->toBe(['required', 'min:3'])
+        ->and($fields[1]['rules'])->toBe(['required', 'min:3']);
+});
+
 it('404s an unknown blueprint handle with the standard envelope', function () {
     $this->withToken($this->makeSuperToken())
         ->getJson('/api/editor/v1/collections/articles/blueprints/nope')
