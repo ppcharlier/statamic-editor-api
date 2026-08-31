@@ -8,6 +8,7 @@ use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
+use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Statamic\Facades\Form;
 
 final class FormsController
@@ -30,9 +31,15 @@ final class FormsController
         ResourceGate::form($handle = $form->handle());
         Guard::check($request->user(), PermissionMap::formSubmissions('view', $handle));
 
-        $params = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
+        $params = $request->validate([
+            'sort' => ['sometimes', 'string', 'max:50'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
 
-        $paginator = $form->querySubmissions()->orderBy('id', 'desc')->paginate((int) ($params['per_page'] ?? 25));
+        // Submission ids ARE creation timestamps, so `id` is the chronological axis.
+        [$column, $direction] = SortParam::resolve($params['sort'] ?? null, ['id'], '-id');
+
+        $paginator = $form->querySubmissions()->orderBy($column, $direction)->paginate((int) ($params['per_page'] ?? 25));
 
         return response()->json([
             'data' => collect($paginator->items())->map(fn ($s) => SubmissionResource::toArray($s))->values()->all(),

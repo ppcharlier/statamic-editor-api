@@ -41,6 +41,20 @@ it('lists terms with pagination', function () {
         ->and($term['title'])->toBe('Philosophie');
 });
 
+it('sorts terms descending with ?sort=-title', function () {
+    $this->withToken($this->token)
+        ->getJson('/api/editor/v1/taxonomies/themes/terms?sort=-title')
+        ->assertOk()
+        ->assertJsonPath('data.0.slug', 'poesie');
+});
+
+it('422s an unknown terms sort field', function () {
+    $this->withToken($this->token)
+        ->getJson('/api/editor/v1/taxonomies/themes/terms?sort=nope')
+        ->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']]);
+});
+
 it('searches on title', function () {
     $response = $this->withToken($this->token)
         ->getJson('/api/editor/v1/taxonomies/themes/terms?search=Philo')

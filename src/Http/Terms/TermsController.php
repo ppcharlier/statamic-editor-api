@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
+use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 use Statamic\Facades\Site;
 use Statamic\Facades\Term;
@@ -23,10 +24,17 @@ final class TermsController
 
         $params = $request->validate([
             'search' => ['sometimes', 'string', 'max:200'],
+            'sort' => ['sometimes', 'string', 'max:50'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = $taxonomy->queryTerms()->orderBy('slug');
+        $sortable = $taxonomy->termBlueprints()
+            ->flatMap(fn ($blueprint) => $blueprint->fields()->all()->keys())
+            ->merge(['slug', 'title'])
+            ->unique()->values()->all();
+        [$column, $direction] = SortParam::resolve($params['sort'] ?? null, $sortable, 'slug');
+
+        $query = $taxonomy->queryTerms()->orderBy($column, $direction);
 
         if ($search = $params['search'] ?? null) {
             $query->where('title', 'like', '%'.$search.'%');

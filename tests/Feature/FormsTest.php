@@ -63,6 +63,20 @@ it('lists submissions newest first with pagination', function () {
         ->and($response->json('data.0'))->toHaveKeys(['id', 'date', 'data']);
 });
 
+it('sorts submissions oldest first with ?sort=id', function () {
+    $this->withToken($this->token)
+        ->getJson('/api/editor/v1/forms/contact/submissions?sort=id')
+        ->assertOk()
+        ->assertJsonPath('data.0.data.name', 'Alice');
+});
+
+it('422s an unknown submissions sort field', function () {
+    $this->withToken($this->token)
+        ->getJson('/api/editor/v1/forms/contact/submissions?sort=nope')
+        ->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']]);
+});
+
 it('deletes a submission', function () {
     $this->withToken($this->token)
         ->deleteJson('/api/editor/v1/forms/contact/submissions/'.$this->submissionId)

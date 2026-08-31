@@ -9,6 +9,7 @@ use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteGuard;
+use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Site;
@@ -37,9 +38,15 @@ final class EntriesController
             $query->where('title', 'like', '%'.$search.'%');
         }
 
-        $sort = $params['sort'] ?? ($collection->dated() ? '-date' : 'title');
-        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
-        $query->orderBy(ltrim($sort, '-'), $direction);
+        $sortable = $collection->entryBlueprints()
+            ->flatMap(fn ($blueprint) => $blueprint->fields()->all()->keys())
+            ->merge(['slug', 'title'])
+            ->when($collection->dated(), fn ($fields) => $fields->push('date'))
+            ->unique()->values()->all();
+        [$column, $direction] = SortParam::resolve(
+            $params['sort'] ?? null, $sortable, $collection->dated() ? '-date' : 'title'
+        );
+        $query->orderBy($column, $direction);
 
         $paginator = $query->paginate((int) ($params['per_page'] ?? 25));
 
