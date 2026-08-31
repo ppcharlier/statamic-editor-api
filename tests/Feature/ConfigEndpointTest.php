@@ -3,6 +3,7 @@
 use Ppcharlier\StatamicEditorApi\Auth\TokenRepository;
 use Statamic\Facades\AssetContainer;
 use Statamic\Facades\Collection;
+use Statamic\Facades\Site;
 use Statamic\Facades\User;
 
 beforeEach(function () {
@@ -30,6 +31,20 @@ it('describes collections with their capabilities', function () {
     expect(collect($response->json('data.asset_containers'))->firstWhere('handle', 'uploads'))->not->toBeNull();
 });
 
+it('reports a single default site and scopes every collection to it', function () {
+    // Verrou mono-site : sans Pro / sans multisite, `sites` ne contient que le site par
+    // défaut et chaque ressource s'y limite — le bloc additif de la v1.2 ne doit rien
+    // changer au contrat par défaut.
+    $config = $this->withToken($this->plainToken)->getJson('/api/editor/v1/config')->assertOk()->json('data');
+
+    $default = Site::default()->handle();
+
+    expect($config['sites'])->toHaveCount(1)
+        ->and($config['sites'][0]['handle'])->toBe($default)
+        ->and($config['sites'][0]['default'])->toBeTrue()
+        ->and($config['collections'][0]['sites'])->toBe([$default]);
+});
+
 it('omits collections excluded by the resource whitelist', function () {
     config()->set('statamic.editor-api.resources.collections', ['articles']);
 
@@ -52,13 +67,17 @@ it('exposes per-resource capabilities', function () {
     $response = $this->withToken($this->plainToken)->getJson('/api/editor/v1/config')->assertOk();
 
     $taxonomy = collect($response->json('data.taxonomies'))->firstWhere('handle', 'themes');
-    expect($taxonomy['blueprints'])->toBeArray();
+    expect($taxonomy['blueprints'])->toBeArray()
+        ->and($taxonomy['sites'])->toBe([Site::default()->handle()]);
 
+    // Une nav n'est disponible que là où un arbre existe : celle-ci n'en a aucun.
     $nav = collect($response->json('data.navigations'))->firstWhere('handle', 'main');
-    expect($nav['max_depth'])->toBe(2)->and($nav)->toHaveKey('expects_root');
+    expect($nav['max_depth'])->toBe(2)->and($nav)->toHaveKey('expects_root')
+        ->and($nav['sites'])->toBe([]);
 
     $global = collect($response->json('data.globals'))->firstWhere('handle', 'footer');
-    expect($global)->toHaveKey('blueprint');
+    expect($global)->toHaveKey('blueprint')
+        ->and($global['sites'])->toBe([Site::default()->handle()]);
 
     $form = collect($response->json('data.forms'))->firstWhere('handle', 'contact');
     expect($form['title'])->toBe('Contact')->and($form)->toHaveKey('store');

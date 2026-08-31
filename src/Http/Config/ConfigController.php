@@ -28,12 +28,14 @@ final class ConfigController
 
     private function sites(): array
     {
+        $default = Site::default()->handle();
+
         return Site::all()->map(fn ($site) => [
             'handle' => $site->handle(),
             'name' => $site->name(),
             'url' => $site->url(),
             'locale' => $site->locale(),
-            'default' => $site->handle() === Site::default()->handle(),
+            'default' => $site->handle() === $default,
         ])->values()->all();
     }
 
@@ -80,6 +82,7 @@ final class ConfigController
                 'handle' => $t->handle(),
                 'title' => $t->title(),
                 'blueprints' => $t->termBlueprints()->map->handle()->values()->all(),
+                'sites' => $t->sites()->values()->all(),
             ])
             ->values()->all();
     }
@@ -96,6 +99,7 @@ final class ConfigController
                 'handle' => $g->handle(),
                 'title' => $g->title(),
                 'blueprint' => $g->blueprint()?->handle(),
+                'sites' => $g->sites()->values()->all(),
             ])
             ->values()->all();
     }
@@ -113,6 +117,9 @@ final class ConfigController
                 'title' => $n->title(),
                 'max_depth' => $n->maxDepth(),
                 'expects_root' => (bool) $n->expectsRoot(),
+                // Nav::sites() = les clés de trees(), donc les sites où un arbre existe
+                // réellement — vide tant qu'aucun arbre n'a été enregistré.
+                'sites' => $n->sites()->values()->all(),
             ])
             ->values()->all();
     }
