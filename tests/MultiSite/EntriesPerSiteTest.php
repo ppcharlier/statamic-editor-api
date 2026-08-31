@@ -36,3 +36,16 @@ it('exposes site and localizations on the detail', function () {
         ->and(collect($detail['localizations'])->pluck('site')->sort()->values()->all())->toBe(['en', 'fr'])
         ->and(collect($detail['localizations'])->firstWhere('site', 'fr')['id'])->toBe($this->fr->id());
 });
+
+it('creates an independent entry directly in a non-default site', function () {
+    $created = $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries?site=fr', [
+            'slug' => 'bonjour', 'date' => '2026-02-01', 'data' => ['title' => 'Bonjour'],
+        ])->assertStatus(201)->json('data');
+
+    expect($created['site'])->toBe('fr');
+
+    $entry = Entry::find($created['id']);
+    expect($entry->locale())->toBe('fr')
+        ->and($entry->hasOrigin())->toBeFalse();
+});
