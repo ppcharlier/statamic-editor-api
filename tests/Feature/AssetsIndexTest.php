@@ -16,6 +16,26 @@ beforeEach(function () {
     $this->container->makeAsset('vacances/plage.jpg')->upload(UploadedFile::fake()->image('plage.jpg'));
 });
 
+it('paginates folders with the same page/per_page as assets', function () {
+    $this->container->makeAsset('archives/vieux.jpg')->upload(UploadedFile::fake()->image('vieux.jpg'));
+    $this->container->makeAsset('brouillons/wip.jpg')->upload(UploadedFile::fake()->image('wip.jpg'));
+
+    $page1 = $this->withToken($this->token)
+        ->getJson('/api/editor/v1/assets/uploads?per_page=2')
+        ->assertOk();
+
+    // 3 dossiers (archives, brouillons, vacances) triés : page 1 en porte 2
+    expect($page1->json('data.folders'))->toBe(['archives', 'brouillons'])
+        ->and($page1->json('meta.folders_total'))->toBe(3)
+        ->and($page1->json('meta.folders_last_page'))->toBe(2);
+
+    $page2 = $this->withToken($this->token)
+        ->getJson('/api/editor/v1/assets/uploads?per_page=2&page=2')
+        ->assertOk();
+
+    expect($page2->json('data.folders'))->toBe(['vacances']);
+});
+
 it('lists root assets and folders non-recursively', function () {
     $response = $this->withToken($this->token)
         ->getJson('/api/editor/v1/assets/uploads')

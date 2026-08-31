@@ -26,21 +26,29 @@ final class AssetsController
         $folder = trim($params['folder'] ?? '/', '/') ?: '/';
         $this->rejectTraversal($folder);
 
+        $perPage = (int) ($params['per_page'] ?? 25);
+
         $paginator = $container->queryAssets()
             ->where('folder', $folder)
             ->orderBy('path')
-            ->paginate((int) ($params['per_page'] ?? 25));
+            ->paginate($perPage);
+
+        // Folders share the assets' page/per_page: both lists advance together.
+        $folders = $container->folders($folder, false)->sort()->values();
+        $page = $paginator->currentPage();
 
         return response()->json([
             'data' => [
                 'assets' => collect($paginator->items())->map(fn ($a) => AssetResource::toArray($a))->values()->all(),
-                'folders' => $container->folders($folder, false)->values()->all(),
+                'folders' => $folders->slice(($page - 1) * $perPage, $perPage)->values()->all(),
             ],
             'meta' => [
                 'total' => $paginator->total(),
-                'current_page' => $paginator->currentPage(),
+                'current_page' => $page,
                 'per_page' => $paginator->perPage(),
                 'last_page' => $paginator->lastPage(),
+                'folders_total' => $folders->count(),
+                'folders_last_page' => max(1, (int) ceil($folders->count() / $perPage)),
             ],
         ]);
     }
