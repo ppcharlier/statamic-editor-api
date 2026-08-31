@@ -33,4 +33,11 @@ final class ResourceGate
             throw new ApiException('not_found', 'Not found.', 404);
         }
     }
+
+    public static function navigation(string $handle): void
+    {
+        if (! ResourceConfig::enabled('navigations', $handle)) {
+            throw new ApiException('not_found', 'Not found.', 404);
+        }
+    }
 }

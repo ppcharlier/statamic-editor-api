@@ -12,6 +12,8 @@ final class PermissionMap
 
     private const TERM_ACTIONS = ['view', 'edit', 'create', 'delete'];
 
+    private const NAV_ACTIONS = ['view', 'edit'];
+
     public static function entries(string $action, string $collection): string
     {
         self::assertAction($action, self::ENTRY_ACTIONS);
@@ -36,6 +38,13 @@ final class PermissionMap
     public static function globals(string $handle): string
     {
         return "edit {$handle} globals";
+    }
+
+    public static function navs(string $action, string $nav): string
+    {
+        self::assertAction($action, self::NAV_ACTIONS);
+
+        return "{$action} {$nav} nav";
     }
 
     private static function assertAction(string $action, array $allowed): void

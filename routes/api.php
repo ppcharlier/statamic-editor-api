@@ -7,6 +7,7 @@ use Ppcharlier\StatamicEditorApi\Http\Blueprints\BlueprintsController;
 use Ppcharlier\StatamicEditorApi\Http\Config\ConfigController;
 use Ppcharlier\StatamicEditorApi\Http\Entries\EntriesController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
+use Ppcharlier\StatamicEditorApi\Http\Navigations\NavigationsController;
 use Ppcharlier\StatamicEditorApi\Http\Terms\TermsController;
 
 Route::post('auth/tokens', [TokensController::class, 'store'])
@@ -55,6 +56,10 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::post('taxonomies/{taxonomy}/terms', [TermsController::class, 'store'])->name('terms.store');
     Route::patch('taxonomies/{taxonomy}/terms/{slug}', [TermsController::class, 'update'])->name('terms.update');
     Route::delete('taxonomies/{taxonomy}/terms/{slug}', [TermsController::class, 'destroy'])->name('terms.destroy');
+
+    Route::get('navigations', [NavigationsController::class, 'index'])->name('navigations.index');
+    Route::get('navigations/{handle}/tree', [NavigationsController::class, 'show'])->name('navigations.tree.show');
+    Route::patch('navigations/{handle}/tree', [NavigationsController::class, 'update'])->name('navigations.tree.update');
 });
 
 if (app()->runningUnitTests()) {
