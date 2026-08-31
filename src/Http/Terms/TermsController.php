@@ -66,7 +66,10 @@ final class TermsController
         // exposes as its own top-level 'slug' param rather than inside 'data'. It's
         // merged in here so the blueprint's own `required` rule for it is satisfied,
         // then excluded from the processed values so it isn't stored twice in term data.
-        $fields = $blueprint->fields()->addValues($payload['data'] + ['slug' => $payload['slug']]);
+        // The top-level 'slug' must win on collision (PHP's array + keeps the left
+        // operand), since a client-supplied `data.slug` is otherwise indistinguishable
+        // from a real blueprint field and would silently override the validated slug.
+        $fields = $blueprint->fields()->addValues(['slug' => $payload['slug']] + $payload['data']);
         $fields->validator()->validate();
 
         $term = Term::make($payload['slug'])->taxonomy($taxonomy);

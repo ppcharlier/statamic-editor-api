@@ -81,6 +81,17 @@ it('validates blueprint rules and unknown keys', function () {
         ->assertJson(['error' => ['code' => 'unknown_field']]);
 });
 
+it('ignores a client-supplied slug inside data in favor of the top-level slug', function () {
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/taxonomies/themes/terms', [
+            'slug' => 'valide',
+            'data' => ['title' => 'Valide', 'slug' => ''],
+        ])->assertStatus(201)
+        ->assertJsonPath('data.slug', 'valide');
+
+    expect(\Statamic\Facades\Term::find('themes::valide'))->not->toBeNull();
+});
+
 it('enforces permissions and whitelist', function () {
     $viewOnly = $this->makeTokenWithPermissions(['view themes terms']);
 
