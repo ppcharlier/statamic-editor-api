@@ -4,7 +4,7 @@ return [
     'route_prefix' => 'api/editor',
 
     'auth' => [
-        'driver' => 'file', // 'file' ou 'sanctum' (sanctum : phase ultérieure)
+        'driver' => 'file', // 'file' (tokens en fichiers) ou 'sanctum' (tokens en DB, requiert laravel/sanctum + users Eloquent)
         'token_ttl_days' => 90, // null = pas d'expiration
     ],
 

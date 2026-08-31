@@ -10,7 +10,8 @@
     "require-dev": {
         "orchestra/testbench": "^9.0 || ^10.0",
         "pestphp/pest": "^3.0",
-        "pestphp/pest-plugin-laravel": "^3.0"
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "laravel/sanctum": "^4.3"
     },
     "autoload": {
         "psr-4": { "Ppcharlier\\StatamicEditorApi\\": "src" }
@@ -30,5 +31,8 @@
     "config": {
         "allow-plugins": { "pestphp/pest-plugin": true, "pixelfear/composer-dist-plugin": true }
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "suggest": {
+        "laravel/sanctum": "Requis pour auth.driver 'sanctum' (tokens en base de données)"
+    }
 }

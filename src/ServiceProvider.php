@@ -26,10 +26,25 @@ class ServiceProvider extends AddonServiceProvider
 
         $this->mergeConfigFrom(__DIR__.'/../config/editor-api.php', 'statamic.editor-api');
 
-        $this->app->singleton(
-            \Ppcharlier\StatamicEditorApi\Auth\TokenRepository::class,
-            \Ppcharlier\StatamicEditorApi\Auth\FileTokenRepository::class,
-        );
+        $this->app->singleton(\Ppcharlier\StatamicEditorApi\Auth\TokenRepository::class, function ($app) {
+            $driver = config('statamic.editor-api.auth.driver', 'file');
+
+            if ($driver === 'sanctum') {
+                if (! class_exists(\Laravel\Sanctum\PersonalAccessToken::class)) {
+                    throw new \RuntimeException(
+                        "editor-api: auth.driver 'sanctum' requires laravel/sanctum (composer require laravel/sanctum)."
+                    );
+                }
+
+                return $app->make(\Ppcharlier\StatamicEditorApi\Auth\SanctumTokenRepository::class);
+            }
+
+            if ($driver !== 'file') {
+                throw new \RuntimeException("editor-api: unknown auth.driver '{$driver}' — expected 'file' or 'sanctum'.");
+            }
+
+            return $app->make(\Ppcharlier\StatamicEditorApi\Auth\FileTokenRepository::class);
+        });
     }
 
     public function bootAddon()
