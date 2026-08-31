@@ -82,6 +82,11 @@ final class EntriesController
             'data' => ['required', 'array'],
         ]);
 
+        if (isset($payload['date']) && ! $collection->dated()) {
+            throw new ApiException('validation_failed', 'The given data was invalid.', 422,
+                ['date' => ['This collection is not dated.']]);
+        }
+
         $blueprint = $collection->entryBlueprint();
         $this->rejectUnknownFields($payload['data'], $blueprint);
 
@@ -154,6 +159,11 @@ final class EntriesController
             'data' => ['required', 'array'],
         ]);
 
+        if (isset($payload['date']) && ! $entry->collection()->dated()) {
+            throw new ApiException('validation_failed', 'The given data was invalid.', 422,
+                ['date' => ['This collection is not dated.']]);
+        }
+
         $working = $entry->fromWorkingCopy();
 
         $blueprint = $working->blueprint();
@@ -177,7 +187,7 @@ final class EntriesController
             $working->slug($payload['slug']);
         }
 
-        if (isset($payload['date']) && $working->collection()->dated()) {
+        if (isset($payload['date'])) { // guarded above: only reaches here on a dated collection
             $working->date($payload['date']);
         }
 

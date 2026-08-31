@@ -97,6 +97,22 @@ it('422s an impossible date instead of silently rolling it over', function () {
         ->assertJson(['error' => ['code' => 'validation_failed']]);
 });
 
+it('422s a top-level date on an undated collection instead of silently dropping it', function () {
+    \Statamic\Facades\Collection::make('notes')->title('Notes')->dated(false)->save();
+    \Statamic\Facades\Blueprint::make('note')->setNamespace('collections.notes')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'title', 'field' => ['type' => 'text']],
+        ]]]]]])->save();
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/notes/entries', [
+            'slug' => 'sans-date', 'date' => '2026-01-01',
+            'data' => ['title' => 'X'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']])
+        ->assertJsonStructure(['error' => ['errors' => ['date']]]);
+});
+
 it('rejects data.slug as a meta handle, not a data field', function () {
     $this->withToken($this->token)
         ->postJson('/api/editor/v1/collections/articles/entries', [

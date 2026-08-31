@@ -57,6 +57,23 @@ it('saves directly when revisions are disabled, still never publishing', functio
         ->and($live->published())->toBeTrue();
 });
 
+it('422s a top-level date on an undated collection instead of silently dropping it', function () {
+    \Statamic\Facades\Collection::make('notes')->title('Notes')->dated(false)->save();
+    \Statamic\Facades\Blueprint::make('note')->setNamespace('collections.notes')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'title', 'field' => ['type' => 'text']],
+        ]]]]]])->save();
+    $note = tap(Entry::make()->collection('notes')->slug('note')->data(['title' => 'Note']))->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$note->id(), [
+            'date' => '2026-01-01',
+            'data' => ['title' => 'Toujours sans date'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'validation_failed']])
+        ->assertJsonStructure(['error' => ['errors' => ['date']]]);
+});
+
 it('rejects published in the payload', function () {
     $this->withToken($this->token)
         ->patchJson('/api/editor/v1/entries/'.$this->published->id(), [
