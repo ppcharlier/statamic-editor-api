@@ -55,7 +55,12 @@ final class GlobalsController
 
     private function guarded(Request $request, $variables): void
     {
-        SiteResolver::resolve($request);
+        // The `{global}` route parameter is already resolved to the requested site's
+        // localization by the vendor binder (RouteServiceProvider::bindGlobalSets), which
+        // 404s when the set has no localization for that site. We still call SiteResolver
+        // scoped to the set's own sites as defense in depth for any future route that binds
+        // globals differently.
+        SiteResolver::resolve($request, $variables->globalSet()->sites()->all());
         ResourceGate::global($handle = $variables->globalSet()->handle());
         Guard::check($request->user(), PermissionMap::globals($handle));
     }
