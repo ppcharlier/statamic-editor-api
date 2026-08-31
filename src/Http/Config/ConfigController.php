@@ -5,6 +5,7 @@ namespace Ppcharlier\StatamicEditorApi\Http\Config;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Statamic\Facades\AssetContainer;
 use Statamic\Facades\Collection;
+use Statamic\Facades\Form;
 use Statamic\Facades\GlobalSet;
 use Statamic\Facades\Nav;
 use Statamic\Facades\Taxonomy;
@@ -19,6 +20,7 @@ final class ConfigController
             'taxonomies' => $this->taxonomies(),
             'globals' => $this->globals(),
             'navigations' => $this->navigations(),
+            'forms' => $this->forms(),
         ]]);
     }
 
@@ -60,7 +62,11 @@ final class ConfigController
 
         return Taxonomy::all()
             ->filter(fn ($t) => ResourceConfig::enabled('taxonomies', $t->handle()))
-            ->map(fn ($t) => ['handle' => $t->handle(), 'title' => $t->title()])
+            ->map(fn ($t) => [
+                'handle' => $t->handle(),
+                'title' => $t->title(),
+                'blueprints' => $t->termBlueprints()->map->handle()->values()->all(),
+            ])
             ->values()->all();
     }
 
@@ -72,7 +78,11 @@ final class ConfigController
 
         return GlobalSet::all()
             ->filter(fn ($g) => ResourceConfig::enabled('globals', $g->handle()))
-            ->map(fn ($g) => ['handle' => $g->handle(), 'title' => $g->title()])
+            ->map(fn ($g) => [
+                'handle' => $g->handle(),
+                'title' => $g->title(),
+                'blueprint' => $g->blueprint()?->handle(),
+            ])
             ->values()->all();
     }
 
@@ -84,7 +94,28 @@ final class ConfigController
 
         return Nav::all()
             ->filter(fn ($n) => ResourceConfig::enabled('navigations', $n->handle()))
-            ->map(fn ($n) => ['handle' => $n->handle(), 'title' => $n->title()])
+            ->map(fn ($n) => [
+                'handle' => $n->handle(),
+                'title' => $n->title(),
+                'max_depth' => $n->maxDepth(),
+                'expects_root' => (bool) $n->expectsRoot(),
+            ])
+            ->values()->all();
+    }
+
+    private function forms(): array
+    {
+        if (! ResourceConfig::enabled('forms')) {
+            return [];
+        }
+
+        return Form::all()
+            ->filter(fn ($f) => ResourceConfig::enabled('forms', $f->handle()))
+            ->map(fn ($f) => [
+                'handle' => $f->handle(),
+                'title' => $f->title(),
+                'store' => (bool) $f->store(),
+            ])
             ->values()->all();
     }
 }

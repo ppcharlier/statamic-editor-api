@@ -42,3 +42,24 @@ it('omits collections excluded by the resource whitelist', function () {
 it('requires authentication', function () {
     $this->getJson('/api/editor/v1/config')->assertStatus(401);
 });
+
+it('exposes per-resource capabilities', function () {
+    \Statamic\Facades\Taxonomy::make('themes')->title('Thèmes')->save();
+    tap(\Statamic\Facades\GlobalSet::make('footer')->title('Footer'))->save();
+    tap(\Statamic\Facades\Nav::make('main')->title('Menu')->maxDepth(2))->save();
+    tap(\Statamic\Facades\Form::make('contact')->title('Contact'))->save();
+
+    $response = $this->withToken($this->plainToken)->getJson('/api/editor/v1/config')->assertOk();
+
+    $taxonomy = collect($response->json('data.taxonomies'))->firstWhere('handle', 'themes');
+    expect($taxonomy['blueprints'])->toBeArray();
+
+    $nav = collect($response->json('data.navigations'))->firstWhere('handle', 'main');
+    expect($nav['max_depth'])->toBe(2)->and($nav)->toHaveKey('expects_root');
+
+    $global = collect($response->json('data.globals'))->firstWhere('handle', 'footer');
+    expect($global)->toHaveKey('blueprint');
+
+    $form = collect($response->json('data.forms'))->firstWhere('handle', 'contact');
+    expect($form['title'])->toBe('Contact')->and($form)->toHaveKey('store');
+});
