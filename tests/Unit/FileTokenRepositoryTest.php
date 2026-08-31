@@ -87,3 +87,46 @@ it('does not resurrect a revoked token on touchLastUsed', function () {
 
     expect($this->repo->findByPlainText($new->plainText))->toBeNull();
 });
+
+it('treats a ttl of 0 as immediate expiry, not as no expiration', function () {
+    config()->set('statamic.editor-api.auth.token_ttl_days', 0);
+
+    $new = $this->repo->create('user-1', 'iPhone');
+
+    expect($new->token->expiresAt)->not->toBeNull()
+        ->and($new->token->isExpired())->toBeTrue();
+});
+
+it('throttles touchLastUsed to at most one write per minute', function () {
+    $new = $this->repo->create('user-1', 'iPhone');
+
+    $this->repo->touchLastUsed($new->token);
+    $first = $this->repo->findByPlainText($new->plainText)->lastUsedAt;
+
+    $this->travel(10)->seconds();
+    $this->repo->touchLastUsed($this->repo->findByPlainText($new->plainText));
+    expect($this->repo->findByPlainText($new->plainText)->lastUsedAt->toIso8601String())
+        ->toBe($first->toIso8601String()); // < 1 min : pas de réécriture
+
+    $this->travel(2)->minutes();
+    $this->repo->touchLastUsed($this->repo->findByPlainText($new->plainText));
+    expect($this->repo->findByPlainText($new->plainText)->lastUsedAt->toIso8601String())
+        ->not->toBe($first->toIso8601String());
+});
+
+it('throws instead of failing silently when the storage dir is not writable', function () {
+    $dir = config('statamic.editor-api.storage_path');
+    mkdir($dir, 0755, true);
+    chmod($dir, 0555);
+
+    try {
+        $this->repo->create('user-1', 'iPhone');
+        $failed = false;
+    } catch (\RuntimeException) {
+        $failed = true;
+    } finally {
+        chmod($dir, 0755);
+    }
+
+    expect($failed)->toBeTrue();
+})->skipOnWindows();

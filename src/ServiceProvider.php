@@ -46,8 +46,18 @@ class ServiceProvider extends AddonServiceProvider
         });
 
         RateLimiter::for('editor-api', function (Request $request) {
-            return Limit::perMinute(config('statamic.editor-api.rate_limits.api', 120))
-                ->by($request->bearerToken() ?? $request->ip());
+            $bearer = $request->bearerToken();
+
+            return [
+                // Per-token limit — the bearer is hashed so the raw secret never
+                // becomes a cache key.
+                Limit::perMinute(config('statamic.editor-api.rate_limits.api', 120))
+                    ->by($bearer ? 'token:'.hash('sha256', $bearer) : 'ip:'.$request->ip()),
+                // Per-IP ceiling — without it, rotating garbage bearers would each
+                // get a fresh per-token bucket.
+                Limit::perMinute(config('statamic.editor-api.rate_limits.api_per_ip', 480))
+                    ->by('ip-cap:'.$request->ip()),
+            ];
         });
 
         $this->callAfterResolving(ExceptionHandler::class, function ($handler) {

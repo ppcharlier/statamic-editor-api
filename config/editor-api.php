@@ -13,6 +13,7 @@ return [
     'rate_limits' => [
         'auth' => 5,  // requêtes/minute sur POST /auth/tokens, par IP
         'api' => 120, // requêtes/minute sur le reste, par token
+        'api_per_ip' => 480, // plafond par IP (bloque la rotation de bearers-poubelle)
     ],
 
     // true = tous les handles, ['a', 'b'] = liste blanche, false = désactivé

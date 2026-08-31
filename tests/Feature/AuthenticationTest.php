@@ -56,3 +56,27 @@ it('prefers token_expired over unauthenticated when both apply', function () {
         ->assertStatus(401)
         ->assertJson(['error' => ['code' => 'token_expired']]);
 });
+
+it('caps rotating garbage bearers with a per-ip limit on top of the per-token one', function () {
+    config()->set('statamic.editor-api.rate_limits.api', 2);
+    config()->set('statamic.editor-api.rate_limits.api_per_ip', 3);
+
+    $repo = app(TokenRepository::class);
+    $a = $repo->create($this->user->id(), 'A')->plainText;
+    $b = $repo->create($this->user->id(), 'B')->plainText;
+    $c = $repo->create($this->user->id(), 'C')->plainText;
+
+    // 2 requêtes token A : sous les deux limites
+    $this->withToken($a)->getJson('/api/editor/v1/me')->assertOk();
+    $this->withToken($a)->getJson('/api/editor/v1/me')->assertOk();
+
+    // 3e requête token A : bucket par token plein
+    $this->withToken($a)->getJson('/api/editor/v1/me')
+        ->assertStatus(429)->assertJson(['error' => ['code' => 'rate_limited']]);
+
+    // token B, bearer neuf : 4e requête de l'IP → le plafond IP doit bloquer
+    // (sans lui, chaque bearer-poubelle obtiendrait un bucket vierge)
+    $this->withToken($b)->getJson('/api/editor/v1/me')->assertOk(); // 3e hit IP : passe encore
+    $this->withToken($c)->getJson('/api/editor/v1/me')
+        ->assertStatus(429)->assertJson(['error' => ['code' => 'rate_limited']]);
+});

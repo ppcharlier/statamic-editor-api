@@ -20,7 +20,7 @@ final class FileTokenRepository implements TokenRepository
             name: $deviceName,
             createdAt: CarbonImmutable::now(),
             lastUsedAt: null,
-            expiresAt: $ttlDays ? CarbonImmutable::now()->addDays((int) $ttlDays) : null,
+            expiresAt: $ttlDays !== null ? CarbonImmutable::now()->addDays((int) $ttlDays) : null,
         );
 
         $this->write($token);
@@ -42,6 +42,12 @@ final class FileTokenRepository implements TokenRepository
 
     public function touchLastUsed(Token $token): void
     {
+        // Throttled: last_used_at is minute-precision, so an active token costs
+        // one file write per minute instead of one per request.
+        if ($token->lastUsedAt?->gt(CarbonImmutable::now()->subMinute())) {
+            return;
+        }
+
         // Don't resurrect a revoked token
         if (! File::exists($this->pathFor($token->hash))) {
             return;
@@ -70,8 +76,15 @@ final class FileTokenRepository implements TokenRepository
         $destination = $this->pathFor($token->hash);
         $temporary = $destination.'.tmp.'.uniqid();
 
-        File::put($temporary, YAML::dump($token->toArray()));
-        rename($temporary, $destination);
+        // A full disk or bad permissions must not fail silently into a token
+        // that was "created" but never persisted.
+        try {
+            if (File::put($temporary, YAML::dump($token->toArray())) === false || ! rename($temporary, $destination)) {
+                throw new \RuntimeException('Token file write failed: '.$destination);
+            }
+        } catch (\ErrorException $e) {
+            throw new \RuntimeException('Token file write failed: '.$destination, 0, $e);
+        }
     }
 
     private function pathFor(string $hash): string
