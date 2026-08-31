@@ -8,8 +8,8 @@ use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
+use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Statamic\Facades\Nav;
-use Statamic\Facades\Site;
 
 final class NavigationsController
 {
@@ -29,7 +29,7 @@ final class NavigationsController
 
     public function show(Request $request, string $handle)
     {
-        [$nav, $tree] = $this->resolve($handle);
+        [$nav, $tree] = $this->resolve($request, $handle);
         $this->guardView($request, $handle);
 
         return response()->json(['data' => $this->payload($nav, $tree)]);
@@ -37,7 +37,7 @@ final class NavigationsController
 
     public function update(Request $request, string $handle)
     {
-        [$nav, $tree] = $this->resolve($handle);
+        [$nav, $tree, $site] = $this->resolve($request, $handle);
         Guard::check($request->user(), PermissionMap::navs('edit', $handle));
 
         $payload = $request->validate(['tree' => ['present', 'array']]);
@@ -64,7 +64,7 @@ final class NavigationsController
 
         $working->save(); // outside the catch: a genuine internal failure stays a clean 500
 
-        return response()->json(['data' => $this->payload($nav, $nav->in(Site::default()->handle()))]);
+        return response()->json(['data' => $this->payload($nav, $nav->in($site))]);
     }
 
     private function depth(array $tree): int
@@ -78,17 +78,21 @@ final class NavigationsController
         return $max;
     }
 
-    private function resolve(string $handle): array
+    private function resolve(Request $request, string $handle): array
     {
         ResourceGate::navigation($handle);
 
+        // Unscoped: navs declare trees per site, and the absence of a tree for the
+        // requested site (checked below) is itself the scope check.
+        $site = SiteResolver::resolve($request);
+
         $nav = Nav::findByHandle($handle);
 
-        if (! $nav || ! ($tree = $nav->in(Site::default()->handle()))) {
+        if (! $nav || ! ($tree = $nav->in($site))) {
             throw new ApiException('not_found', 'Navigation not found.', 404);
         }
 
-        return [$nav, $tree];
+        return [$nav, $tree, $site];
     }
 
     private function guardView(Request $request, string $handle): void
