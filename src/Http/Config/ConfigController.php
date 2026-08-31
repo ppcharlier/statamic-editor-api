@@ -8,6 +8,7 @@ use Statamic\Facades\Collection;
 use Statamic\Facades\Form;
 use Statamic\Facades\GlobalSet;
 use Statamic\Facades\Nav;
+use Statamic\Facades\Site;
 use Statamic\Facades\Taxonomy;
 
 final class ConfigController
@@ -15,6 +16,7 @@ final class ConfigController
     public function __invoke()
     {
         return response()->json(['data' => [
+            'sites' => $this->sites(),
             'collections' => $this->collections(),
             'asset_containers' => $this->assetContainers(),
             'taxonomies' => $this->taxonomies(),
@@ -22,6 +24,17 @@ final class ConfigController
             'navigations' => $this->navigations(),
             'forms' => $this->forms(),
         ]]);
+    }
+
+    private function sites(): array
+    {
+        return Site::all()->map(fn ($site) => [
+            'handle' => $site->handle(),
+            'name' => $site->name(),
+            'url' => $site->url(),
+            'locale' => $site->locale(),
+            'default' => $site->handle() === Site::default()->handle(),
+        ])->values()->all();
     }
 
     private function collections(): array
@@ -39,6 +52,7 @@ final class ConfigController
                 'dated' => (bool) $c->dated(),
                 'structured' => $c->hasStructure(),
                 'blueprints' => $c->entryBlueprints()->map->handle()->values()->all(),
+                'sites' => $c->sites()->all(),
             ])->values()->all();
     }
 
