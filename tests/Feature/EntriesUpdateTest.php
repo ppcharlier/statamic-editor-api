@@ -136,3 +136,26 @@ it('rejects data.date as a meta handle, not a data field', function () {
         ->assertJson(['error' => ['code' => 'unknown_field']])
         ->assertJsonStructure(['error' => ['errors' => ['date']]]);
 });
+
+it('422s a slug change whose uri is already taken', function () {
+    \Statamic\Facades\Collection::findByHandle('articles')->routes('/articles/{slug}')->save();
+    tap(Entry::make()->collection('articles')->slug('autre')->date('2026-03-01')
+        ->data(['title' => 'Autre']))->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->published->id(), [
+            'slug' => 'autre',
+            'data' => ['title' => 'Collision'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'uri_taken']]);
+});
+
+it('keeps accepting a slug change to a free uri', function () {
+    \Statamic\Facades\Collection::findByHandle('articles')->routes('/articles/{slug}')->save();
+
+    $this->withToken($this->token)
+        ->patchJson('/api/editor/v1/entries/'.$this->published->id(), [
+            'slug' => 'libre',
+            'data' => ['title' => 'OK'],
+        ])->assertOk();
+});

@@ -144,3 +144,31 @@ it('never persists a stray slug key inside entry data', function () {
     expect($entry->data()->keys()->all())->not->toContain('slug')
         ->and($entry->data()->keys()->all())->not->toContain('date');
 });
+
+it('422s a slug whose uri is already taken in a routed collection', function () {
+    \Statamic\Facades\Collection::findByHandle('articles')->routes('/articles/{slug}')->save();
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'existant', 'date' => '2026-01-01', 'data' => ['title' => 'Premier'],
+        ])->assertStatus(201);
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'existant', 'date' => '2026-02-01', 'data' => ['title' => 'Doublon'],
+        ])->assertStatus(422)
+        ->assertJson(['error' => ['code' => 'uri_taken']])
+        ->assertJsonStructure(['error' => ['errors' => ['slug']]]);
+});
+
+it('allows a duplicate slug when the collection has no route (no uri to collide)', function () {
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'librement', 'date' => '2026-01-01', 'data' => ['title' => 'Un'],
+        ])->assertStatus(201);
+
+    $this->withToken($this->token)
+        ->postJson('/api/editor/v1/collections/articles/entries', [
+            'slug' => 'librement', 'date' => '2026-02-01', 'data' => ['title' => 'Deux'],
+        ])->assertStatus(201);
+});

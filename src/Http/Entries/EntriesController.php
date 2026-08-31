@@ -10,6 +10,7 @@ use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteGuard;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
+use Ppcharlier\StatamicEditorApi\Support\UniqueUri;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 use Statamic\Facades\Entry;
 use Statamic\Facades\Site;
@@ -117,6 +118,8 @@ final class EntriesController
             $entry->date($payload['date'] ?? now()->format('Y-m-d'));
         }
 
+        UniqueUri::guard($entry);
+
         $published = (bool) ($payload['published'] ?? false);
 
         if ($published) {
@@ -189,6 +192,10 @@ final class EntriesController
 
         if (isset($payload['date'])) { // guarded above: only reaches here on a dated collection
             $working->date($payload['date']);
+        }
+
+        if (isset($payload['slug']) || isset($payload['date'])) {
+            UniqueUri::guard($working);
         }
 
         if ($working->revisionsEnabled() && $working->published()) {
