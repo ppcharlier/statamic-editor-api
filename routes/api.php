@@ -6,6 +6,7 @@ use Ppcharlier\StatamicEditorApi\Http\Auth\TokensController;
 use Ppcharlier\StatamicEditorApi\Http\Blueprints\BlueprintsController;
 use Ppcharlier\StatamicEditorApi\Http\Config\ConfigController;
 use Ppcharlier\StatamicEditorApi\Http\Entries\EntriesController;
+use Ppcharlier\StatamicEditorApi\Http\Entries\LocalizationsController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 use Ppcharlier\StatamicEditorApi\Http\Forms\FormsController;
 use Ppcharlier\StatamicEditorApi\Http\Navigations\NavigationsController;
@@ -39,6 +40,9 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
 
     Route::post('entries/{id}/published', [\Ppcharlier\StatamicEditorApi\Http\Entries\PublishedEntriesController::class, 'store'])->name('entries.publish');
     Route::delete('entries/{id}/published', [\Ppcharlier\StatamicEditorApi\Http\Entries\PublishedEntriesController::class, 'destroy'])->name('entries.unpublish');
+
+    Route::post('entries/{id}/localizations', [LocalizationsController::class, 'store'])
+        ->name('entries.localizations.store');
 
     Route::get('entries/{id}/revisions', [\Ppcharlier\StatamicEditorApi\Http\Revisions\RevisionsController::class, 'index'])->name('revisions.index');
     Route::post('entries/{id}/revisions/{revision}/restore', [\Ppcharlier\StatamicEditorApi\Http\Revisions\RevisionsController::class, 'restore'])->name('revisions.restore');
