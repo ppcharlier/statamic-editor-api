@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
-use Statamic\Facades\Site;
+use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 
 final class LocalizationsController
 {
@@ -19,11 +19,12 @@ final class LocalizationsController
 
         $site = $request->validate(['site' => ['required', 'string']])['site'];
 
-        if (! Site::all()->map->handle()->contains($site)
-            || ! $entry->collection()->sites()->contains($site)) {
-            throw new ApiException('validation_failed', 'The given data was invalid.', 422,
-                ['site' => ["Unknown site [{$site}] or collection not available in it."]]);
-        }
+        // Same checks as SiteResolver::resolve(), but on a BODY value — this is the one
+        // endpoint where the site is payload rather than a query param — hence
+        // resolveValue() with its own message: from the client's side the two failure
+        // modes (unknown handle / out of the collection's scope) are one and the same here.
+        SiteResolver::resolveValue($site, $entry->collection()->sites()->all(),
+            "Unknown site [{$site}] or collection not available in it.");
 
         if ($entry->existsIn($site)) {
             throw new ApiException('conflict', 'A localization already exists for this site.', 409,
