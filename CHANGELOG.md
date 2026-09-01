@@ -4,6 +4,19 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.2] — 2026-09-01
+
+### Fixed
+
+- **`GET /entries/{id}` mixed two versions of the same entry.** With a working copy
+  present, `data` came from the draft but the top-level `slug`, `date` and `title`
+  came from the live entry — so a client was editing a draft body against live
+  metadata, and had no way to recover the draft values it was never sent. In an
+  editor this showed up as a date silently reverting after a successful save.
+  All editable fields now come from the working copy, matching `data` and matching
+  what publishing applies. `status`, `published` and `has_unpublished_changes`
+  stay live: the draft is precisely what is *not* published.
+
 ## [1.2.1] — 2026-09-01
 
 ### Fixed

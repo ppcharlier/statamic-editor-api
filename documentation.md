@@ -469,6 +469,12 @@ Summary shape:
 
 **Detail** adds `blueprint`, `data`, `site` and `localizations`.
 
+> When a working copy exists, the detail payload describes **the draft**: `slug`,
+> `date`, `title` and `data` all come from it, which is what publishing will apply.
+> `status`, `published` and `has_unpublished_changes` describe the **live** entry —
+> a draft is by definition what has not been published. The list endpoint keeps
+> showing live values, with `has_unpublished_changes` flagging the difference.
+
 **Create** (`POST`):
 
 | Field | Rules |

@@ -43,6 +43,15 @@ final class EntryResource
         $allowed = $working->blueprint()->fields()->all()->keys()->diff(MetaFields::HANDLES)->all();
 
         return array_merge(self::summary($entry), [
+            // Tout ce qui est ÉDITABLE doit venir de la même version que `data` : la working
+            // copy est ce que le client modifie, et c'est elle que publish applique. Renvoyer un
+            // `data` de brouillon avec un `slug`/`date`/`title` live faisait éditer un mélange de
+            // deux versions — et aucun client ne peut rattraper des valeurs qu'on ne lui envoie
+            // jamais. `status`, `published` et `has_unpublished_changes` restent LIVE : le
+            // brouillon est précisément ce qui n'est pas publié.
+            'slug' => $working->slug(),
+            'title' => $working->value('title'),
+            'date' => $entry->collection()->dated() ? $working->date()?->toIso8601String() : null,
             'blueprint' => $working->blueprint()->handle(),
             'data' => Arr::only($working->data()->all(), $allowed),
             'site' => $entry->locale(),
