@@ -4,40 +4,56 @@
 
 **Editor API** adds a clean, complete REST *write* API to your Statamic 6 site —
 built as the backend of the **Statamic Editor** app for iPhone, and open to any
-client you want to build. No hosted service, no sync, no middleman: your site
-is the only backend.
+client you want to build. No hosted service, no sync, no middleman: your site is
+the only backend.
+
+[![Statamic 6](https://img.shields.io/badge/Statamic-6-FF269E?style=flat-square)](https://statamic.com)
+[![PHP 8.3+](https://img.shields.io/badge/PHP-8.3+-777BB4?style=flat-square)](https://php.net)
+[![License: MIT](https://img.shields.io/badge/license-MIT-d4ff4c?style=flat-square)](LICENSE.md)
+
+---
+
+## Why
+
+Statamic's Control Panel is excellent — on a laptop. Everything else (a phone, a
+tablet, a script, a custom editor) needs an API that can *write*, and that means
+more than `POST` and hope: drafts that don't go live, revisions you can restore,
+permissions that already match your team, and payloads that come back exactly as
+you sent them.
+
+That's what this addon is.
 
 ## Features
 
 - **Control Panel parity, the safe way.** Everything goes through Statamic's
-  public facades — the same path the CP uses. No private controllers, no
-  fragile workarounds.
+  public facades — the same path the CP uses. No private controllers, no fragile
+  workarounds.
 - **Drafts by default, publishing on purpose.** `PATCH` saves a working copy;
-  publishing is an explicit action with its own endpoint.
+  publishing is an explicit action with its own endpoint and message.
 - **Revisions & working copies.** Full history and semantic restore, when
   revisions are enabled on the collection.
 - **Your permissions, untouched.** Tokens are tied to real Statamic users and
   their native roles and permissions. Nothing to duplicate, nothing to drift.
 - **Byte-faithful Bard.** ProseMirror documents round-trip verbatim — unknown
-  node types, custom attributes and whitespace included. What your editor
-  sends is exactly what your site stores.
+  node types, custom attributes and whitespace included. What your editor sends
+  is exactly what your site stores.
 - **Conflict detection.** `X-Base-Modified` guards every write — two editors
-  can't silently overwrite each other (`409` on stale base).
+  can't silently overwrite each other (`409` on a stale base).
 - **The whole surface.** Entries, assets (upload included), taxonomy terms,
   globals, navigations and form submissions — plus blueprints, so clients can
   render forms dynamically.
-- **Multi-site ready.** Localized entries, linked localizations, per-site
-  globals and terms.
+- **Multi-site ready.** Localized entries, linked localizations, per-site globals
+  and terms.
 
 ## Requirements
 
 - Statamic 6
 - PHP 8.3+
 
-Works with and without Statamic Pro: without Pro the API degrades gracefully
-(direct saves instead of working copies, single user). Revisions, multiple
-users and multi-site require Pro. Clients can read `GET /config` to adapt
-their UI per collection.
+Works **with and without Statamic Pro**: without Pro the API degrades gracefully
+(direct saves instead of working copies, a single user). Revisions, multiple
+users and multi-site require Pro. Clients read `GET /config` and adapt their UI
+per collection.
 
 ## Installation
 
@@ -51,25 +67,48 @@ Optionally publish the config:
 php artisan vendor:publish --tag=editor-api-config
 ```
 
-## Authentication
+That's it — the routes are live under `/api/editor/v1`.
 
-Create a token by signing in with a Statamic user's credentials:
+## Quick start
+
+**1. Sign in** with a Statamic user's credentials to get a token:
 
 ```bash
 curl -X POST https://example.com/api/editor/v1/auth/tokens \
   -H "Content-Type: application/json" \
-  -d '{"email": "jane@example.com", "password": "secret"}'
+  -d '{"email": "jane@example.com", "password": "secret", "device_name": "iPhone"}'
 ```
 
-Use the returned token as a bearer on every request. Tokens are revocable
-(`DELETE /auth/tokens/current`), expire after 90 days by default, and are
-rate-limited per token *and* per IP. Two storage drivers are available:
+```json
+{ "data": { "token": "3|kqZ…", "expires_at": "2026-11-29T10:12:00+00:00" } }
+```
 
-- `file` (default) — tokens stored on disk, no database required.
-- `sanctum` — tokens in the `personal_access_tokens` table (requires
-  `laravel/sanctum` and Eloquent users).
+**2. Discover the site** — one call gives a client everything it needs to build
+its UI (sites, collections, blueprints, containers, revision flags):
 
-## Endpoints
+```bash
+curl https://example.com/api/editor/v1/config \
+  -H "Authorization: Bearer 3|kqZ…"
+```
+
+**3. Save a draft**, then publish it on purpose:
+
+```bash
+curl -X PATCH https://example.com/api/editor/v1/entries/abc-123 \
+  -H "Authorization: Bearer 3|kqZ…" \
+  -H "Content-Type: application/json" \
+  -H "X-Base-Modified: 2026-09-01T08:15:00+00:00" \
+  -d '{"data": {"title": "Low tide at the Aber Wrac’h", "body": [ … ]}}'
+
+curl -X POST https://example.com/api/editor/v1/entries/abc-123/published \
+  -H "Authorization: Bearer 3|kqZ…" \
+  -d '{"message": "Fixed the tide times"}'
+```
+
+The `X-Base-Modified` header is the `last_modified` you read. If someone else
+changed the entry in between, you get a `409` instead of overwriting their work.
+
+## The API at a glance
 
 All routes live under `/api/editor/v1` (prefix configurable).
 
@@ -87,43 +126,24 @@ All routes live under `/api/editor/v1` (prefix configurable).
 | Navigations | `GET /navigations` · `GET·PATCH /navigations/{handle}/tree` |
 | Forms | `GET /forms` · `GET /forms/{form}/submissions` · `DELETE /forms/{form}/submissions/{id}` |
 
-Every resource area can be disabled or restricted to an allow-list of handles
-in the config (`resources` key). Users endpoints are off by default.
+Every resource area can be disabled, or restricted to an allow-list of handles,
+in the config — a disabled resource answers `404`, so a client can't even tell it
+exists.
 
-## Drafts, publishing & conflicts
+📖 **[Full documentation](documentation.md)** — authentication and token drivers,
+every endpoint with its payloads, error codes, multi-site, permissions.
 
-- `PATCH /entries/{id}` saves a **working copy** when revisions are enabled on
-  the collection, and saves directly otherwise. It never publishes.
-- `POST /entries/{id}/published` publishes (with an optional message);
-  `DELETE` unpublishes.
-- Writes accept an `X-Base-Modified` header carrying the `last_modified` you
-  read; if the entry changed in between, the API answers `409` instead of
-  overwriting.
+## Security
 
-## Multi-site
+Tokens are hashed at rest, revocable, expire after 90 days by default, and are
+rate-limited per token *and* per IP. Two storage drivers ship with the addon:
 
-Pass `?site=` on entry, term, global and navigation routes. `GET /config`
-lists the sites the token may use; entries expose a `localizations` map and
-`POST /entries/{id}/localizations` creates a linked localization.
+- `file` (default) — tokens on disk, no database required.
+- `sanctum` — tokens in the `personal_access_tokens` table (requires
+  `laravel/sanctum` and Eloquent users).
 
-## Configuration
-
-`config/statamic/editor-api.php`:
-
-- `route_prefix` — defaults to `api/editor`.
-- `auth.driver` — `file` or `sanctum`; `auth.token_ttl_days` (default 90,
-  `null` = no expiry).
-- `rate_limits` — per-minute limits for auth (per IP) and the API (per token,
-  plus a per-IP ceiling).
-- `resources` — enable/disable or allow-list collections, assets, globals,
-  taxonomies, navigations, forms.
-
-## A note on payload fidelity
-
-Laravel's global `TrimStrings` and `ConvertEmptyStringsToNull` middleware are
-skipped for Editor API requests: they would walk nested Bard/ProseMirror
-documents and mangle whitespace and empty strings. Editors need byte-for-byte
-round-trips; with Editor API, they get them.
+Found a vulnerability? Please report it privately rather than opening a public
+issue.
 
 ## Testing
 
@@ -133,4 +153,4 @@ vendor/bin/pest
 
 ## License
 
-[MIT](LICENSE.md)
+[MIT](LICENSE.md) — free, for any site.

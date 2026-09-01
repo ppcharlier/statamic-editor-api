@@ -33,6 +33,6 @@
     },
     "minimum-stability": "stable",
     "suggest": {
-        "laravel/sanctum": "Requis pour auth.driver 'sanctum' (tokens en base de données)"
+        "laravel/sanctum": "Required for the 'sanctum' auth driver (database-backed tokens)"
     }
 }
