@@ -3,3 +3,6 @@
 composer.lock
 .phpunit.result.cache
 tests/__fixtures__
+
+# Notes de travail internes — hors du paquet public (purgées de l'historique le 2026-09-01)
+docs/

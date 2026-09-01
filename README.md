@@ -7,6 +7,7 @@ built as the backend of the **Statamic Editor** app for iPhone, and open to any
 client you want to build. No hosted service, no sync, no middleman: your site is
 the only backend.
 
+[![tests](https://github.com/ppcharlier/statamic-editor-api/actions/workflows/tests.yml/badge.svg)](https://github.com/ppcharlier/statamic-editor-api/actions/workflows/tests.yml)
 [![Statamic 6](https://img.shields.io/badge/Statamic-6-FF269E?style=flat-square)](https://statamic.com)
 [![PHP 8.3+](https://img.shields.io/badge/PHP-8.3+-777BB4?style=flat-square)](https://php.net)
 [![License: MIT](https://img.shields.io/badge/license-MIT-d4ff4c?style=flat-square)](LICENSE.md)
