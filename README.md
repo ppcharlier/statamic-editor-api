@@ -10,7 +10,7 @@ the only backend.
 [![tests](https://github.com/ppcharlier/statamic-editor-api/actions/workflows/tests.yml/badge.svg)](https://github.com/ppcharlier/statamic-editor-api/actions/workflows/tests.yml)
 [![Statamic 6](https://img.shields.io/badge/Statamic-6-FF269E?style=flat-square)](https://statamic.com)
 [![PHP 8.3+](https://img.shields.io/badge/PHP-8.3+-777BB4?style=flat-square)](https://php.net)
-[![License: MIT](https://img.shields.io/badge/license-MIT-d4ff4c?style=flat-square)](LICENSE.md)
+[![License: commercial](https://img.shields.io/badge/license-commercial-d4ff4c?style=flat-square)](LICENSE.md)
 
 ---
 
@@ -154,4 +154,4 @@ vendor/bin/pest
 
 ## License
 
-[MIT](LICENSE.md) — free, for any site.
+[Commercial](LICENSE.md) — $50 per site on the [Statamic Marketplace](https://statamic.com/marketplace). Source-available: read it, audit it, adapt it to your sites.

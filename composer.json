@@ -1,7 +1,7 @@
 {
     "name": "ppcharlier/statamic-editor-api",
     "description": "Write API for Statamic with drafts & revisions, built for mobile editors.",
-    "license": "MIT",
+    "license": "proprietary",
     "type": "statamic-addon",
     "require": {
         "php": "^8.3",
