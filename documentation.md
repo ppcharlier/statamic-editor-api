@@ -23,6 +23,10 @@ API for Statamic 6, with drafts, revisions, publishing, assets and multi-site.
 composer require ppcharlier/statamic-editor-api
 ```
 
+Editor API is a commercial addon: each production site needs a licence, bought
+once from the [Statamic Marketplace](https://statamic.com/marketplace). Local,
+staging and CI environments do not, so you can try it before you buy.
+
 Requirements: **Statamic 6** and **PHP 8.3+**. The addon registers itself through
 Laravel package discovery — there is nothing else to wire up.
 
@@ -754,4 +758,6 @@ single- and multi-site setups.
 
 ## License
 
-[MIT](LICENSE.md)
+[Commercial](LICENSE.md) — $50 per site on the [Statamic Marketplace](https://statamic.com/marketplace). Source-available: read it,
+audit it, adapt it to the sites your licence covers. Local, staging and CI
+environments need no licence.
