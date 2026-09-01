@@ -224,6 +224,14 @@ payload so a form renderer can skip them, and sending them inside `data` is a
 Any key in `data` that is not in the blueprint is rejected with
 `422 unknown_field` — writes never silently drop content.
 
+### Assets fields
+
+An `assets` field is stored as bare paths, and as a **scalar** rather than an array when
+the field's `max_files` is 1 — that is what `GET` returns. Writes accept that shape
+directly, so echoing `GET` data back into `PATCH` works. They also accept the
+`container::path` id shape (`["assets::cover.jpg"]`) that a Control-Panel-style client
+sends. A path that does not exist in the container is a `422`, never a silent drop.
+
 ### Dates
 
 Entry `date` is written as `Y-m-d` (strict) and read back as ISO 8601.

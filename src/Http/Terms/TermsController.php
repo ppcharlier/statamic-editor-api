@@ -5,6 +5,7 @@ namespace Ppcharlier\StatamicEditorApi\Http\Terms;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
+use Ppcharlier\StatamicEditorApi\Support\AssetsFieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
@@ -80,7 +81,8 @@ final class TermsController
         // The top-level 'slug' must win on collision (PHP's array + keeps the left
         // operand), since a client-supplied `data.slug` is otherwise indistinguishable
         // from a real blueprint field and would silently override the validated slug.
-        $fields = $blueprint->fields()->addValues(['slug' => $payload['slug']] + $payload['data']);
+        $fields = $blueprint->fields()->addValues(
+            ['slug' => $payload['slug']] + AssetsFieldShape::normalize($payload['data'], $blueprint));
         $fields->validator()->validate();
 
         $term = Term::make($payload['slug'])->taxonomy($taxonomy);
@@ -154,7 +156,8 @@ final class TermsController
 
         UnknownFields::reject($payload['data'], array_diff($blueprint->fields()->all()->keys()->all(), ['slug']));
 
-        $fields = $blueprint->fields()->except(['slug'])->addValues($payload['data']);
+        $fields = $blueprint->fields()->except(['slug'])
+            ->addValues(AssetsFieldShape::normalize($payload['data'], $blueprint));
         $fields->validator()->validate();
 
         // Payload is known good from here on — safe to mutate.

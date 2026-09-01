@@ -4,6 +4,23 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] — 2026-09-01
+
+### Fixed
+
+- **`assets` fields could not be saved back.** Statamic stores an assets field as bare
+  paths — a scalar rather than an array when `max_files` is 1 — but its fieldtype
+  consumes the shape the Control Panel submits: an array of `container::path` ids.
+  This API returns stored data verbatim, so a client echoing `GET` data back into
+  `PATCH` was rejected with *"must be an array"*, and one sending an array of bare
+  paths crashed `Asset::findOrFail()` with a `500`. In practice: **any entry with a
+  cover image failed to save.** Writes now normalize assets fields through the
+  fieldtype's own `preProcess()`, so the stored shape round-trips. Clients already
+  sending `container::path` ids are unaffected — that shape passes through unchanged.
+- An asset path that does not exist in its container is now a `422` naming the field,
+  instead of being silently dropped (the Control Panel's behaviour) or surfacing as a
+  `500`.
+
 ## [1.2.0] — 2026-09-01
 
 First public release. The API surface is complete and stable for clients;
