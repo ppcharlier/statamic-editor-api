@@ -4,6 +4,17 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] — 2026-09-01
+
+### Fixed
+
+- **`documentation.md` still said the addon was MIT licensed**, contradicting
+  `LICENSE.md`, `composer.json` and the README. Its License section now states the
+  commercial terms, and the installation section says a licence is required per
+  production site — local, staging and CI environments are not.
+
+Documentation only: no code, endpoint or payload changed.
+
 ## [2.0.0] — 2026-09-01
 
 ### Changed
