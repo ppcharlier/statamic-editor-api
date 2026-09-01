@@ -4,6 +4,25 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] — 2026-09-01
+
+### Changed
+
+- **Editor API is now a commercial addon**, sold on the
+  [Statamic Marketplace](https://statamic.com/marketplace) at $50 per site.
+  The licence changes from MIT to a source-available commercial licence: the code
+  stays public and readable, you may audit it and adapt it to the sites your
+  licence covers, but redistribution and unlicensed production use are not
+  permitted. Local, staging and CI environments need no licence, so evaluating
+  the addon remains free.
+
+  **The API surface is unchanged** — no endpoint, payload or header differs from
+  1.2.2. This is a major version because the terms of use changed, not the code.
+
+  Versions up to and including 1.2.2 were published under MIT. That grant is
+  irrevocable for those versions; their tags have been removed so they are no
+  longer distributed under those terms. See [LICENSE.md](LICENSE.md).
+
 ## [1.2.2] — 2026-09-01
 
 ### Fixed
