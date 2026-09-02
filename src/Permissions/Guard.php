@@ -19,4 +19,19 @@ final class Guard
     {
         return $user->isSuper() || $user->hasPermission($permission);
     }
+
+    /**
+     * Ask Statamic's own policy (EntryPolicy, ...) whether $user may perform
+     * $ability on $resource. Unlike check(), this honours the per-resource
+     * nuances the Control Panel applies — "edit other authors" and site
+     * access above all — so the API never grants more than the CP would.
+     */
+    public static function authorize($user, string $ability, $resource): void
+    {
+        if ($user->can($ability, $resource)) {
+            return;
+        }
+
+        throw new ApiException('forbidden', "Not authorized to {$ability} this resource.", 403);
+    }
 }

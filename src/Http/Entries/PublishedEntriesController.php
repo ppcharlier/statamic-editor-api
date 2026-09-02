@@ -5,7 +5,6 @@ namespace Ppcharlier\StatamicEditorApi\Http\Entries;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Statamic\Facades\Entry;
 
 final class PublishedEntriesController
@@ -53,7 +52,7 @@ final class PublishedEntriesController
     private function guarded(Request $request, string $id)
     {
         $entry = $this->findEntry($request, $id);
-        Guard::check($request->user(), PermissionMap::entries('publish', $entry->collectionHandle()));
+        Guard::authorize($request->user(), 'publish', $entry);
 
         return $entry;
     }

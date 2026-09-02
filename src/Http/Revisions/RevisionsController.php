@@ -7,7 +7,6 @@ use Ppcharlier\StatamicEditorApi\Http\Entries\EntryResource;
 use Ppcharlier\StatamicEditorApi\Http\Entries\ResolvesEntries;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Statamic\Facades\Entry;
 
 final class RevisionsController
@@ -43,10 +42,10 @@ final class RevisionsController
         return response()->json(['data' => EntryResource::detail(Entry::find($id))]);
     }
 
-    private function revisable(Request $request, string $id, string $action)
+    private function revisable(Request $request, string $id, string $ability)
     {
         $entry = $this->findEntry($request, $id);
-        Guard::check($request->user(), PermissionMap::entries($action, $entry->collectionHandle()));
+        Guard::authorize($request->user(), $ability, $entry);
 
         if (! $entry->revisionsEnabled()) {
             throw new ApiException('revisions_disabled', 'Revisions are not enabled for this collection.', 422);
