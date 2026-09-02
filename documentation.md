@@ -359,6 +359,15 @@ A missing permission is `403 forbidden`, with the exact permission named in the
 message. Super users bypass the checks; `GET /me` reports `"permissions": ["*"]`
 for them.
 
+Actions on an existing entry — update, delete, publish, unpublish, restore a
+revision — are authorized through Statamic's own `EntryPolicy` rather than the bare
+permission string, so the verdict is exactly the Control Panel's: when the entry's
+`author` field names someone else, the user also needs
+`edit|delete|publish other authors {collection} entries`, and the entry's site must be
+one the user may access. Sites whose blueprints have no `author` field see no
+difference. The `403` message on these routes reads `Not authorized to update this
+resource.`
+
 Index endpoints (`/globals`, `/navigations`, `/taxonomies`, `/forms`) list only
 what the user may see, so a client can build its navigation from them directly.
 

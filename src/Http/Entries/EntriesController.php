@@ -141,7 +141,8 @@ final class EntriesController
     public function update(Request $request, string $id)
     {
         $entry = $this->findEntry($request, $id);
-        Guard::check($request->user(), PermissionMap::entries('edit', $handle = $entry->collectionHandle()));
+        Guard::authorize($request->user(), 'update', $entry);
+        $handle = $entry->collectionHandle();
 
         $this->guardAgainstConflict($request, $entry);
 
@@ -208,7 +209,7 @@ final class EntriesController
     public function destroy(Request $request, string $id)
     {
         $entry = $this->findEntry($request, $id);
-        Guard::check($request->user(), PermissionMap::entries('delete', $entry->collectionHandle()));
+        Guard::authorize($request->user(), 'delete', $entry);
 
         if ($entry->revisionsEnabled()) {
             $entry->deleteWorkingCopy();
