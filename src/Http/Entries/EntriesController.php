@@ -7,7 +7,7 @@ use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
-use Ppcharlier\StatamicEditorApi\Support\AssetsFieldShape;
+use Ppcharlier\StatamicEditorApi\Support\FieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
@@ -100,7 +100,7 @@ final class EntriesController
         // processed with no value and land in entry data as a stray `slug: null`.
         $blueprintFields = $blueprint->fields()->except(MetaFields::HANDLES);
 
-        $fields = $blueprintFields->addValues(AssetsFieldShape::normalize($payload['data'], $blueprint));
+        $fields = $blueprintFields->addValues(FieldShape::normalize($payload['data'], $blueprint));
         $fields->validator()
             ->withRules(Entry::createRules($collection, $site))
             ->withReplacements(['collection' => $handle, 'site' => $site])
@@ -176,7 +176,7 @@ final class EntriesController
         // top-level Y-m-d payload date validated above and applied via $working->date().
         $blueprintFields = $blueprint->fields()->except(MetaFields::HANDLES);
 
-        $fields = $blueprintFields->addValues(AssetsFieldShape::normalize($payload['data'], $blueprint));
+        $fields = $blueprintFields->addValues(FieldShape::normalize($payload['data'], $blueprint));
         $fields->validator()
             ->withRules(Entry::updateRules($working->collection(), $working))
             ->withReplacements(['id' => $working->id(), 'collection' => $handle, 'site' => $working->locale()])

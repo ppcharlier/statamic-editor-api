@@ -236,6 +236,20 @@ directly, so echoing `GET` data back into `PATCH` works. They also accept the
 `container::path` id shape (`["assets::cover.jpg"]`) that a Control-Panel-style client
 sends. A path that does not exist in the container is a `422`, never a silent drop.
 
+### Relationship fields
+
+The same holds for every relationship fieldtype — `entries`, `terms`, `users`,
+`taxonomies`, `navs`, `collections` and anything else built on Statamic's
+`Relationship` class. They are stored as a **scalar** rather than an array when the
+field's `max_items` is 1, and that stored shape is what writes accept
+(`"serie": "id"`), alongside the array shape a Control-Panel-style client sends
+(`"serie": ["id"]`). `max_items` is still enforced. For a `terms` field on a single
+taxonomy, both the bare slug (`"php"`) and the qualified id (`"topics::php"`) work.
+
+Both reconciliations apply at any depth: inside a `group`, a `grid` row, a `replicator`
+set or a Bard set. Errors then name the full path, as Statamic's own validation does
+(`"blocs.0.serie"`).
+
 ### Dates
 
 Entry `date` is written as `Y-m-d` (strict) and read back as ISO 8601.

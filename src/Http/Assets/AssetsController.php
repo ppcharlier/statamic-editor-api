@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
-use Ppcharlier\StatamicEditorApi\Support\AssetsFieldShape;
+use Ppcharlier\StatamicEditorApi\Support\FieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
 
@@ -122,7 +122,7 @@ final class AssetsController
             $blueprint = $container->blueprint();
             $this->rejectUnknownFields($payload['data'], $blueprint);
 
-            $fields = $blueprint->fields()->addValues(AssetsFieldShape::normalize($payload['data'], $blueprint));
+            $fields = $blueprint->fields()->addValues(FieldShape::normalize($payload['data'], $blueprint));
             $fields->validator()->validate();
             $asset->merge(Arr::only($fields->process()->values()->all(), array_keys($payload['data'])));
             $asset->save();

@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
-use Ppcharlier\StatamicEditorApi\Support\AssetsFieldShape;
+use Ppcharlier\StatamicEditorApi\Support\FieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
@@ -44,7 +44,7 @@ final class GlobalsController
         $blueprint = $variables->blueprint();
         UnknownFields::reject($payload['data'], $blueprint->fields()->all()->keys()->all());
 
-        $fields = $blueprint->fields()->addValues(AssetsFieldShape::normalize($payload['data'], $blueprint));
+        $fields = $blueprint->fields()->addValues(FieldShape::normalize($payload['data'], $blueprint));
         $fields->validator()->validate();
 
         $variables->data($fields->process()->values());
