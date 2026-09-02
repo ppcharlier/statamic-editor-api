@@ -41,7 +41,8 @@ trait BuildsEntryFixtures
     protected function makeTokenWithPermissions(array $permissions): string
     {
         $handle = 'role_'.uniqid();
-        Role::make($handle)->title($handle)->permissions($permissions)->save();
+        // Every API user needs the addon's own gate; tests describe what comes on top.
+        Role::make($handle)->title($handle)->permissions(array_merge(['access editor-api'], $permissions))->save();
         $user = tap(User::make()->email(uniqid().'@example.com')->assignRole($handle))->save();
 
         return app(TokenRepository::class)->create($user->id(), 'iPhone')->plainText;

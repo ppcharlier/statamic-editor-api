@@ -16,7 +16,7 @@ uses(BuildsEntryFixtures::class);
 function tokenWithOnly(array $permissions): string
 {
     $handle = 'role_'.uniqid();
-    Role::make($handle)->title($handle)->permissions($permissions)->save();
+    Role::make($handle)->title($handle)->permissions(array_merge(['access editor-api'], $permissions))->save();
     $user = tap(User::make()->email(uniqid().'@example.com')->assignRole($handle))->save();
 
     return app(TokenRepository::class)->create($user->id(), 'iPhone')->plainText;

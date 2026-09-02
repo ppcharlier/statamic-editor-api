@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Ppcharlier\StatamicEditorApi\Auth\TokenRepository;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
+use Ppcharlier\StatamicEditorApi\Permissions\ApiAccess;
 use Statamic\Facades\User;
 
 final class TokensController
@@ -27,6 +28,9 @@ final class TokensController
         if (! $user || ! Hash::check($data['password'], $user->password())) {
             throw new ApiException('invalid_credentials', 'Invalid email or password.', 401);
         }
+
+        // Only after the password check: the 403 must not reveal whether the account exists.
+        ApiAccess::ensure($user);
 
         $new = $this->tokens->create($user->id(), $data['device_name']);
 

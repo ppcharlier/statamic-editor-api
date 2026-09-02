@@ -3,6 +3,7 @@
 namespace Ppcharlier\StatamicEditorApi\Http\Terms;
 
 use Illuminate\Support\Arr;
+use Ppcharlier\StatamicEditorApi\Permissions\Capabilities;
 
 final class TermResource
 {
@@ -18,6 +19,7 @@ final class TermResource
             'title' => $term->title(),
             'published' => (bool) $term->published(),
             'data' => Arr::only($term->data()->all(), array_diff($handles, ['slug'])),
+            'can' => Capabilities::of($term, ['edit' => 'update', 'delete' => 'delete']),
         ];
     }
 }
