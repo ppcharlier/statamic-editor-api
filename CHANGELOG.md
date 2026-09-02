@@ -4,6 +4,28 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.2] — 2026-09-02
+
+### Fixed
+
+- **A relationship field with `max_items: 1` could not be written back.** Statamic
+  stores such a field as a scalar (`serie: ma-serie`) but validates it with `array`,
+  so a client echoing `GET` data into `PATCH` — the iOS app changing only the slug —
+  was rejected on a field it never touched, with "must be an array" and "must not have
+  more than 1 items". Had validation passed, `process()` would have read `$value[0]`
+  off that string and stored its first letter.
+
+  Writes now run relationship fields through their own `preProcess()`, as assets
+  fields already did in 1.2.x. The array shape a Control-Panel-style client sends keeps
+  working, `max_items` is still enforced, and a `terms` field on a single taxonomy
+  accepts both `"php"` and `"topics::php"`.
+
+- **The same reconciliation now reaches nested fields**, inside a `group`, a `grid`
+  row, a `replicator` set or a Bard set — a relationship or assets field down there
+  failed identically, under its full path. Assets errors now name that full path
+  (`blocs.0.hero`). Bard's verbatim round-trip is untouched: only relationship and
+  assets values inside sets are normalised.
+
 ## [2.0.1] — 2026-09-01
 
 ### Fixed
