@@ -48,9 +48,15 @@ it('404s an unknown id', function () {
 });
 
 it('403s without view permission on the entry collection', function () {
-    $this->withToken($this->makeTokenWithPermissions(['edit articles entries']))
+    $this->withToken($this->makeTokenWithPermissions(['view pages entries']))
         ->getJson('/api/editor/v1/entries/'.$this->entry->id())
         ->assertStatus(403);
+});
+
+it('lets an editor of the collection read the entry, as the CP does (edit implies view)', function () {
+    $this->withToken($this->makeTokenWithPermissions(['edit articles entries']))
+        ->getJson('/api/editor/v1/entries/'.$this->entry->id())
+        ->assertOk();
 });
 
 it('404s an entry of a collection excluded by the whitelist', function () {

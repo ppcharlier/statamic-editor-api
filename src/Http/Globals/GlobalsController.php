@@ -5,7 +5,6 @@ namespace Ppcharlier\StatamicEditorApi\Http\Globals;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\FieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
@@ -23,7 +22,7 @@ final class GlobalsController
 
         $sets = GlobalSet::all()
             ->filter(fn ($set) => ResourceConfig::enabled('globals', $set->handle()))
-            ->filter(fn ($set) => Guard::allows($user, PermissionMap::globals($set->handle())))
+            ->filter(fn ($set) => Guard::allows($user, 'view', $set))
             ->map(fn ($set) => ['handle' => $set->handle(), 'title' => $set->title()])
             ->values()->all();
 
@@ -70,12 +69,15 @@ final class GlobalsController
         $set = $this->resolveSet($global);
 
         $site = SiteResolver::resolve($request, $set->sites()->all());
-        ResourceGate::global($handle = $set->handle());
-        Guard::check($request->user(), PermissionMap::globals($handle));
+        ResourceGate::global($set->handle());
 
         if (! $variables = $set->in($site)) {
             throw new ApiException('not_found', 'Not found.', 404);
         }
+
+        // GlobalSetVariablesPolicy: site access + `edit {handle} globals`, as the CP's
+        // GlobalVariablesController does on the very same localization.
+        Guard::authorize($request->user(), 'edit', $variables);
 
         return $variables;
     }

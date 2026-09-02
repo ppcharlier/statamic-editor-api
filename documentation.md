@@ -355,18 +355,21 @@ Statamic user's native roles.
 | Navigations | `{view\|edit} {nav} nav` |
 | Form submissions | `{view\|delete} {form} form submissions` |
 
-A missing permission is `403 forbidden`, with the exact permission named in the
-message. Super users bypass the checks; `GET /me` reports `"permissions": ["*"]`
-for them.
+Every request is authorized through Statamic's own policies — the classes the Control
+Panel itself calls (`EntryPolicy`, `AssetPolicy`, `GlobalSetVariablesPolicy`, …) — so
+the verdict is exactly the CP's, on both sides:
 
-Actions on an existing entry — update, delete, publish, unpublish, restore a
-revision — are authorized through Statamic's own `EntryPolicy` rather than the bare
-permission string, so the verdict is exactly the Control Panel's: when the entry's
-`author` field names someone else, the user also needs
-`edit|delete|publish other authors {collection} entries`, and the entry's site must be
-one the user may access. Sites whose blueprints have no `author` field see no
-difference. The `403` message on these routes reads `Not authorized to update this
-resource.`
+- an entry with an `author` field naming someone else also needs
+  `edit|delete|publish other authors {collection} entries`;
+- on a multi-site install the user needs `access {site} site` for the site a request
+  resolves to, and the per-site policies re-check it;
+- `edit … entries` implies `view`, and `configure collections` (globals, navs,
+  taxonomies, forms, asset containers) opens the whole area, as in the CP.
+
+A refusal is `403 forbidden`, with the message `Not authorized to {ability} this
+resource.` or `Not authorized to access site [{handle}].`. Super users bypass the
+checks; `GET /me` reports `"permissions": ["*"]` for them. On a single resource, an
+unknown path or localization is a `404` before any `403`.
 
 Index endpoints (`/globals`, `/navigations`, `/taxonomies`, `/forms`) list only
 what the user may see, so a client can build its navigation from them directly.
@@ -731,7 +734,7 @@ Submissions sort on `id` only (submission ids *are* creation timestamps), defaul
 | `invalid_credentials` | 401 | wrong email/password on `POST /auth/tokens` |
 | `unauthenticated` | 401 | missing, malformed, revoked or unknown bearer token |
 | `token_expired` | 401 | token past its TTL — sign in again |
-| `forbidden` | 403 | the user lacks the named Statamic permission |
+| `forbidden` | 403 | Statamic's policy refused the action (missing permission, other author, site access) |
 | `not_found` | 404 | unknown resource, **or** one disabled in `resources` |
 | `revision_not_found` | 404 | unknown revision id |
 | `conflict` | 409 | stale `X-Base-Modified`, or localization already exists |

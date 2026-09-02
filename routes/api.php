@@ -25,14 +25,14 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::get('me', MeController::class)->name('me');
 
     Route::get('collections/{collection}/blueprints', [BlueprintsController::class, 'index'])
-        ->middleware('editor-api.can:entries,view,collection')->name('blueprints.index');
+        ->middleware('editor-api.can:view,collection')->name('blueprints.index');
     Route::get('collections/{collection}/blueprints/{blueprint}', [BlueprintsController::class, 'show'])
-        ->middleware('editor-api.can:entries,view,collection')->name('blueprints.show');
+        ->middleware('editor-api.can:view,collection')->name('blueprints.show');
 
     Route::get('collections/{collection}/entries', [EntriesController::class, 'index'])
-        ->middleware('editor-api.can:entries,view,collection')->name('entries.index');
-    Route::post('collections/{collection}/entries', [EntriesController::class, 'store'])
-        ->middleware('editor-api.can:entries,create,collection')->name('entries.store');
+        ->middleware('editor-api.can:view,collection')->name('entries.index');
+    // `create` needs the target site, resolved in the controller (EntryPolicy::create).
+    Route::post('collections/{collection}/entries', [EntriesController::class, 'store'])->name('entries.store');
 
     Route::get('entries/{id}', [EntriesController::class, 'show'])->name('entries.show');
     Route::patch('entries/{id}', [EntriesController::class, 'update'])->name('entries.update');
@@ -87,7 +87,7 @@ if (app()->runningUnitTests()) {
         return response()->json(['data' => ['ok' => true]]);
     });
 
-    Route::middleware(['editor-api.auth', 'editor-api.can:entries,edit,collection'])
+    Route::middleware(['editor-api.auth', 'editor-api.can:view,collection'])
         ->get('_guarded/{collection}', fn () => response()->json(['data' => ['ok' => true]]));
 
     Route::get('_forbidden', fn () => abort(403));

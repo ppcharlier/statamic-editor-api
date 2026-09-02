@@ -5,7 +5,6 @@ namespace Ppcharlier\StatamicEditorApi\Http\Forms;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
@@ -19,7 +18,7 @@ final class FormsController
 
         $forms = Form::all()
             ->filter(fn ($form) => ResourceConfig::enabled('forms', $form->handle()))
-            ->filter(fn ($form) => Guard::allows($user, PermissionMap::formSubmissions('view', $form->handle())))
+            ->filter(fn ($form) => Guard::allows($user, 'view', $form))
             ->map(fn ($form) => ['handle' => $form->handle(), 'title' => $form->title()])
             ->values()->all();
 
@@ -28,8 +27,8 @@ final class FormsController
 
     public function submissions(Request $request, $form)
     {
-        ResourceGate::form($handle = $form->handle());
-        Guard::check($request->user(), PermissionMap::formSubmissions('view', $handle));
+        ResourceGate::form($form->handle());
+        Guard::authorize($request->user(), 'view', $form);
 
         $params = $request->validate([
             'sort' => ['sometimes', 'string', 'max:50'],
@@ -54,14 +53,15 @@ final class FormsController
 
     public function destroySubmission(Request $request, $form, string $id)
     {
-        ResourceGate::form($handle = $form->handle());
-        Guard::check($request->user(), PermissionMap::formSubmissions('delete', $handle));
+        ResourceGate::form($form->handle());
 
         $submission = $form->submission($id);
 
         if (! $submission) {
             throw new ApiException('not_found', 'Submission not found.', 404);
         }
+
+        Guard::authorize($request->user(), 'delete', $submission);
 
         $submission->delete();
 

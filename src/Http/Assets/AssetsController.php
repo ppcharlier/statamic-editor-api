@@ -5,10 +5,10 @@ namespace Ppcharlier\StatamicEditorApi\Http\Assets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\FieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
+use Statamic\Contracts\Assets\Asset as AssetContract;
 
 final class AssetsController
 {
@@ -16,8 +16,8 @@ final class AssetsController
 
     public function index(Request $request, $container)
     {
-        ResourceGate::assetContainer($handle = $container->handle());
-        Guard::check($request->user(), PermissionMap::assets('view', $handle));
+        ResourceGate::assetContainer($container->handle());
+        Guard::authorize($request->user(), 'view', $container);
 
         $params = $request->validate([
             'folder' => ['sometimes', 'string', 'max:500'],
@@ -56,8 +56,8 @@ final class AssetsController
 
     public function store(Request $request, $container)
     {
-        ResourceGate::assetContainer($handle = $container->handle());
-        Guard::check($request->user(), PermissionMap::assets('upload', $handle));
+        ResourceGate::assetContainer($container->handle());
+        Guard::authorize($request->user(), 'store', [AssetContract::class, $container]);
 
         $request->validate([
             'file' => array_merge(['required', 'file', new \Statamic\Rules\AllowedFile], $container->validationRules()),
@@ -79,20 +79,20 @@ final class AssetsController
 
     public function show(Request $request, $container, string $path)
     {
-        ResourceGate::assetContainer($handle = $container->handle());
-        Guard::check($request->user(), PermissionMap::assets('view', $handle));
+        ResourceGate::assetContainer($container->handle());
 
         $asset = $this->findAsset($container, $path);
+        Guard::authorize($request->user(), 'view', $asset);
 
         return response()->json(['data' => AssetResource::toArray($asset)]);
     }
 
     public function update(Request $request, $container, string $path)
     {
-        ResourceGate::assetContainer($handle = $container->handle());
-        Guard::check($request->user(), PermissionMap::assets('view', $handle));
+        ResourceGate::assetContainer($container->handle());
 
         $asset = $this->findAsset($container, $path);
+        Guard::authorize($request->user(), 'view', $asset);
 
         $payload = $request->validate([
             'filename' => ['sometimes', 'string', 'max:200'],
@@ -108,14 +108,14 @@ final class AssetsController
 
         // toutes les permissions d'abord — aucune écriture avant un éventuel 403
         if (array_key_exists('filename', $payload)) {
-            Guard::check($request->user(), PermissionMap::assets('rename', $handle));
+            Guard::authorize($request->user(), 'rename', $asset);
         }
         if (array_key_exists('folder', $payload)) {
             $this->rejectTraversal($payload['folder']);
-            Guard::check($request->user(), PermissionMap::assets('move', $handle));
+            Guard::authorize($request->user(), 'move', $asset);
         }
         if (array_key_exists('data', $payload)) {
-            Guard::check($request->user(), PermissionMap::assets('edit', $handle));
+            Guard::authorize($request->user(), 'edit', $asset);
         }
 
         if (array_key_exists('data', $payload)) {
@@ -144,10 +144,10 @@ final class AssetsController
 
     public function destroy(Request $request, $container, string $path)
     {
-        ResourceGate::assetContainer($handle = $container->handle());
-        Guard::check($request->user(), PermissionMap::assets('delete', $handle));
+        ResourceGate::assetContainer($container->handle());
 
         $asset = $this->findAsset($container, $path);
+        Guard::authorize($request->user(), 'delete', $asset);
 
         $asset->delete();
 

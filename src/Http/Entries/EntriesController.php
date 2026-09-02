@@ -5,7 +5,6 @@ namespace Ppcharlier\StatamicEditorApi\Http\Entries;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Ppcharlier\StatamicEditorApi\Support\FieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
@@ -13,7 +12,9 @@ use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Ppcharlier\StatamicEditorApi\Support\UniqueUri;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
+use Statamic\Contracts\Entries\Entry as EntryContract;
 use Statamic\Facades\Entry;
+use Statamic\Facades\Site;
 use Statamic\Rules\Slug;
 
 final class EntriesController
@@ -65,7 +66,7 @@ final class EntriesController
     public function show(Request $request, string $id)
     {
         $entry = $this->findEntry($request, $id);
-        Guard::check($request->user(), PermissionMap::entries('view', $entry->collectionHandle()));
+        Guard::authorize($request->user(), 'view', $entry);
 
         return response()->json(['data' => EntryResource::detail($entry)]);
     }
@@ -74,6 +75,7 @@ final class EntriesController
     {
         $site = SiteResolver::resolve($request, $collection->sites()->all());
         ResourceGate::collection($handle = $collection->handle());
+        Guard::authorize($request->user(), 'create', [EntryContract::class, $collection, Site::get($site)]);
 
         $payload = $request->validate([
             'slug' => ['required', 'string', new Slug],
@@ -121,7 +123,7 @@ final class EntriesController
         $published = (bool) ($payload['published'] ?? false);
 
         if ($published) {
-            Guard::check($request->user(), PermissionMap::entries('publish', $handle));
+            Guard::authorize($request->user(), 'publish', [EntryContract::class, $collection]);
         }
 
         if ($entry->revisionsEnabled()) {

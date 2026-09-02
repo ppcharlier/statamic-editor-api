@@ -4,22 +4,24 @@ namespace Ppcharlier\StatamicEditorApi\Permissions;
 
 use Closure;
 use Illuminate\Http\Request;
-use InvalidArgumentException;
+use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 
+/**
+ * Route middleware `editor-api.can:{ability},{routeParam}` — authorizes $ability against
+ * the model bound to the route parameter, through Statamic's own policy for that model
+ * (`editor-api.can:view,collection` asks CollectionPolicy::view, exactly as the CP does).
+ */
 final class EnsurePermission
 {
-    public function handle(Request $request, Closure $next, string $area, string $action, string $routeParam)
+    public function handle(Request $request, Closure $next, string $ability, string $routeParam)
     {
-        $handle = (string) $request->route($routeParam);
+        $resource = $request->route($routeParam);
 
-        $permission = match ($area) {
-            'entries' => PermissionMap::entries($action, $handle),
-            'assets' => PermissionMap::assets($action, $handle),
-            'globals' => PermissionMap::globals($handle),
-            default => throw new InvalidArgumentException("Unknown permission area [{$area}]."),
-        };
+        if (! is_object($resource)) {
+            throw new ApiException('not_found', 'Not found.', 404);
+        }
 
-        Guard::check($request->user(), $permission);
+        Guard::authorize($request->user(), $ability, $resource);
 
         return $next($request);
     }
