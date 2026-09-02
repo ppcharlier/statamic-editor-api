@@ -29,7 +29,7 @@ beforeEach(function () {
     Taxonomy::make('tags')->title('Tags')->sites(['en', 'fr'])->save();
 
     Role::make('en_only')->title('EN only')->permissions([
-        'access en site',
+        'access editor-api', 'access en site',
         'view articles entries', 'edit articles entries', 'create articles entries',
         'edit footer globals',
         'view main nav', 'edit main nav',

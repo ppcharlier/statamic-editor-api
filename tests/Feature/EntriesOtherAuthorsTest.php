@@ -24,6 +24,7 @@ beforeEach(function () {
 
     // Writers may edit, delete and publish articles — but only their own.
     Role::make('writer')->title('Writer')->permissions([
+        'access editor-api',
         'view articles entries', 'edit articles entries', 'delete articles entries', 'publish articles entries',
     ])->save();
 
@@ -60,7 +61,7 @@ it('refuses editing another author\'s entry without the other-authors permission
 
 it('lets a user holding the other-authors permission edit a colleague\'s entry', function () {
     Role::make('chief')->title('Chief')->permissions([
-        'edit articles entries', 'edit other authors articles entries',
+        'access editor-api', 'edit articles entries', 'edit other authors articles entries',
     ])->save();
     $chief = tap(User::make()->email('chief@example.com')->assignRole('chief'))->save();
 

@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiError;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
+use Ppcharlier\StatamicEditorApi\Permissions\ApiAccess;
+use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -53,6 +55,14 @@ class ServiceProvider extends AddonServiceProvider
     {
         Route::aliasMiddleware('editor-api.auth', \Ppcharlier\StatamicEditorApi\Auth\AuthenticateEditorApi::class);
         Route::aliasMiddleware('editor-api.can', \Ppcharlier\StatamicEditorApi\Permissions\EnsurePermission::class);
+
+        // Shows up in the CP's role editor under its own "Editor API" group, next to
+        // Statamic's "Access the Control Panel".
+        Permission::extend(function () {
+            Permission::group('editor-api', 'Editor API', function () {
+                Permission::register(ApiAccess::PERMISSION)->label('Access the Editor API');
+            });
+        });
 
         // The editor API sends structured (nested) JSON, unlike the CP's web forms which
         // serialize rich-text fields (e.g. bard) as a single JSON string — a shape the

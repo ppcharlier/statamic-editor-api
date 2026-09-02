@@ -2,6 +2,8 @@
 
 namespace Ppcharlier\StatamicEditorApi\Http\Assets;
 
+use Ppcharlier\StatamicEditorApi\Permissions\Capabilities;
+
 final class AssetResource
 {
     public static function toArray($asset): array
@@ -19,6 +21,7 @@ final class AssetResource
             'is_image' => $asset->isImage(),
             'last_modified' => $asset->lastModified()?->toIso8601String(),
             'data' => $asset->data()->all(),
+            'can' => Capabilities::of($asset, ['edit' => 'edit', 'move' => 'move', 'rename' => 'rename', 'delete' => 'delete']),
         ];
     }
 }

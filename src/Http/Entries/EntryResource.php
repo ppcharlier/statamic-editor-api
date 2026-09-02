@@ -4,9 +4,11 @@ namespace Ppcharlier\StatamicEditorApi\Http\Entries;
 
 use Carbon\CarbonInterface;
 use Illuminate\Support\Arr;
+use Ppcharlier\StatamicEditorApi\Permissions\Capabilities;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Statamic\Facades\Blink;
 use Statamic\Facades\Site;
+use Statamic\Facades\User;
 
 final class EntryResource
 {
@@ -22,7 +24,26 @@ final class EntryResource
             'date' => $entry->collection()->dated() ? $entry->date()?->toIso8601String() : null,
             'has_unpublished_changes' => $entry->revisionsEnabled() && $entry->hasWorkingCopy(),
             'last_modified' => self::effectiveLastModified($entry)?->toIso8601String(),
+            'author' => self::author($entry),
+            'can' => Capabilities::of($entry, ['edit' => 'update', 'delete' => 'delete', 'publish' => 'publish']),
         ];
+    }
+
+    /**
+     * The entry's first author as the CP lists it — id and display name, never the
+     * email. Null when the blueprint has no `author` field, so a client can tell "no
+     * author concept here" from "author unknown".
+     */
+    private static function author($entry): ?array
+    {
+        if (! $entry->blueprint()->hasField('author')) {
+            return null;
+        }
+
+        $id = $entry->authors()->first();
+        $user = $id ? User::find($id) : null;
+
+        return $user ? ['id' => (string) $user->id(), 'name' => $user->name()] : null;
     }
 
     public static function detail($entry): array

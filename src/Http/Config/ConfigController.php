@@ -2,7 +2,11 @@
 
 namespace Ppcharlier\StatamicEditorApi\Http\Config;
 
+use Ppcharlier\StatamicEditorApi\Permissions\Capabilities;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
+use Statamic\Contracts\Assets\Asset as AssetContract;
+use Statamic\Contracts\Entries\Entry as EntryContract;
+use Statamic\Contracts\Taxonomies\Term as TermContract;
 use Statamic\Facades\AssetContainer;
 use Statamic\Facades\Collection;
 use Statamic\Facades\Form;
@@ -55,6 +59,7 @@ final class ConfigController
                 'structured' => $c->hasStructure(),
                 'blueprints' => $c->entryBlueprints()->map->handle()->values()->all(),
                 'sites' => $c->sites()->all(),
+                'can' => Capabilities::of([EntryContract::class, $c], ['create' => 'create', 'publish' => 'publish']),
             ])->values()->all();
     }
 
@@ -66,7 +71,11 @@ final class ConfigController
 
         return AssetContainer::all()
             ->filter(fn ($c) => ResourceConfig::enabled('assets', $c->handle()))
-            ->map(fn ($c) => ['handle' => $c->handle(), 'title' => $c->title()])
+            ->map(fn ($c) => [
+                'handle' => $c->handle(),
+                'title' => $c->title(),
+                'can' => Capabilities::of([AssetContract::class, $c], ['upload' => 'store']),
+            ])
             ->values()->all();
     }
 
@@ -83,6 +92,7 @@ final class ConfigController
                 'title' => $t->title(),
                 'blueprints' => $t->termBlueprints()->map->handle()->values()->all(),
                 'sites' => $t->sites()->values()->all(),
+                'can' => Capabilities::of([TermContract::class, $t], ['create' => 'create']),
             ])
             ->values()->all();
     }

@@ -4,6 +4,39 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] — 2026-09-02
+
+### Added
+
+- **`access editor-api` permission.** The counterpart of Statamic's `access cp`: a
+  non-super user must hold it (granted per role in the CP, under the new "Editor API"
+  group) before a token is issued, and on every request afterwards — revoking it cuts off
+  tokens already in the wild. Super users never need it. Refusals are `403 forbidden`,
+  after the password check so they reveal nothing about unknown accounts.
+
+- **`can` blocks on every payload.** The same policies that would refuse a write are
+  asked ahead of time for the current user, so a client greys out what it may not do
+  instead of discovering it through a 403:
+
+  | Payload | Keys |
+  | --- | --- |
+  | entry (list and detail) | `edit`, `delete`, `publish` |
+  | term | `edit`, `delete` |
+  | asset | `edit`, `move`, `rename`, `delete` |
+  | global set | `edit` |
+  | `/config` collection | `create`, `publish` |
+  | `/config` taxonomy | `create` |
+  | `/config` asset container | `upload` |
+
+- **`author` on entries** (list and detail): the first user of the blueprint's `author`
+  field as `{ "id", "name" }` — the display name only, never the email — or `null` when
+  the blueprint has no such field.
+
+### Upgrade
+
+- Grant `access editor-api` to every role that uses the app. On a free-edition site
+  nothing changes: the single super user bypasses it.
+
 ## [2.0.4] — 2026-09-02
 
 ### Fixed

@@ -5,6 +5,7 @@ namespace Ppcharlier\StatamicEditorApi\Auth;
 use Closure;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
+use Ppcharlier\StatamicEditorApi\Permissions\ApiAccess;
 use Statamic\Facades\User;
 
 final class AuthenticateEditorApi
@@ -36,6 +37,8 @@ final class AuthenticateEditorApi
         if (! $user) {
             throw new ApiException('unauthenticated', 'Invalid token.', 401);
         }
+
+        ApiAccess::ensure($user);
 
         $this->tokens->touchLastUsed($token);
 

@@ -47,6 +47,7 @@ The API never requires Pro, but it exposes more when Pro is present:
 | History & restore | ❌ `422 revisions_disabled` | ✅ |
 | Multiple users / roles | ❌ single super user | ✅ |
 | Multi-site | ❌ single site | ✅ |
+| Granting `access editor-api` per role | n/a — the single super user bypasses it | ✅ |
 
 Clients should read `GET /config` and adapt their UI per collection
 (`revisions_enabled`) rather than assuming a mode.
@@ -131,7 +132,9 @@ curl -X POST https://example.com/api/editor/v1/auth/tokens \
 ```
 
 The plain-text token is returned **once**. Bad credentials answer
-`401 invalid_credentials`. This endpoint is rate-limited **per IP**
+`401 invalid_credentials`. A user who lacks the `access editor-api` permission gets
+`403 forbidden` — after the password check, so the answer reveals nothing about
+unknown accounts. Super users never need the permission. This endpoint is rate-limited **per IP**
 (`rate_limits.auth`, 5/min by default).
 
 ### Using a token
@@ -202,6 +205,26 @@ Error:
 prefix answers with this envelope, including 404s on unknown paths and 500s
 (whose internal message is never leaked).
 
+### Capabilities
+
+Every resource payload carries a `can` block: the same Statamic policies that would
+refuse a write, asked ahead of time for the current user. A client greys out what the
+user may not do instead of discovering it through a `403`.
+
+| Payload | Keys |
+| --- | --- |
+| entry (list and detail) | `edit`, `delete`, `publish` |
+| term | `edit`, `delete` |
+| asset | `edit`, `move`, `rename`, `delete` |
+| global set | `edit` |
+| `/config` collection | `create`, `publish` |
+| `/config` taxonomy | `create` |
+| `/config` asset container | `upload` |
+
+Entries also carry `author` — the first user of the blueprint's `author` field as
+`{ "id", "name" }` (display name only, never the email), or `null` when the blueprint
+has no such field — so a list can show whose entry it is next to what the user may do
+with it.
 ### Pagination
 
 `?page=` and `?per_page=` (1–100, default 25) on every list endpoint.
@@ -346,6 +369,10 @@ localization (`409 conflict` if one already exists, with the existing id under
 Tokens carry no permissions of their own: every request is authorized against the
 Statamic user's native roles.
 
+Using the API at all takes the addon's own `access editor-api` permission — the
+counterpart of `access cp`, listed under "Editor API" in the CP's role editor. Super
+users bypass it; anyone else is refused at sign-in and on every request without it.
+
 | Resource | Permission string |
 | --- | --- |
 | Entries | `{view\|edit\|create\|delete\|publish} {collection} entries` |
@@ -421,11 +448,12 @@ Base URL: `{route_prefix}/v1`, i.e. `/api/editor/v1` by default.
         "dated": true,
         "structured": false,
         "blueprints": ["article"],
-        "sites": ["default"]
+        "sites": ["default"],
+        "can": { "create": true, "publish": true }
       }
     ],
-    "asset_containers": [{ "handle": "assets", "title": "Assets" }],
-    "taxonomies": [{ "handle": "topics", "title": "Topics", "blueprints": ["topic"], "sites": ["default"] }],
+    "asset_containers": [{ "handle": "assets", "title": "Assets", "can": { "upload": true } }],
+    "taxonomies": [{ "handle": "topics", "title": "Topics", "blueprints": ["topic"], "sites": ["default"], "can": { "create": true } }],
     "globals": [{ "handle": "footer", "title": "Footer", "blueprint": "footer", "sites": ["default"] }],
     "navigations": [{ "handle": "main", "title": "Main", "max_depth": 3, "expects_root": true, "sites": ["default"] }],
     "forms": [{ "handle": "contact", "title": "Contact", "store": true }]
@@ -493,7 +521,9 @@ Summary shape:
   "published": true,
   "date": "2026-08-30T00:00:00+00:00",
   "has_unpublished_changes": false,
-  "last_modified": "2026-08-31T18:04:12+00:00"
+  "last_modified": "2026-08-31T18:04:12+00:00",
+  "author": { "id": "1", "name": "Jane Doe" },
+  "can": { "edit": true, "delete": false, "publish": true }
 }
 ```
 
@@ -734,7 +764,7 @@ Submissions sort on `id` only (submission ids *are* creation timestamps), defaul
 | `invalid_credentials` | 401 | wrong email/password on `POST /auth/tokens` |
 | `unauthenticated` | 401 | missing, malformed, revoked or unknown bearer token |
 | `token_expired` | 401 | token past its TTL — sign in again |
-| `forbidden` | 403 | Statamic's policy refused the action (missing permission, other author, site access) |
+| `forbidden` | 403 | no `access editor-api`, or Statamic's policy refused the action (missing permission, other author, site access) |
 | `not_found` | 404 | unknown resource, **or** one disabled in `resources` |
 | `revision_not_found` | 404 | unknown revision id |
 | `conflict` | 409 | stale `X-Base-Modified`, or localization already exists |

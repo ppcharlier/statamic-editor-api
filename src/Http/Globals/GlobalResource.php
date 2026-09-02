@@ -4,6 +4,7 @@ namespace Ppcharlier\StatamicEditorApi\Http\Globals;
 
 use Illuminate\Support\Arr;
 use Ppcharlier\StatamicEditorApi\Http\Blueprints\CompactBlueprintSerializer;
+use Ppcharlier\StatamicEditorApi\Permissions\Capabilities;
 
 final class GlobalResource
 {
@@ -18,6 +19,7 @@ final class GlobalResource
             'site' => $variables->locale(),
             'blueprint' => CompactBlueprintSerializer::serialize($blueprint),
             'values' => Arr::only($variables->data()->all(), $handles),
+            'can' => Capabilities::of($variables, ['edit' => 'edit']),
         ];
     }
 }
