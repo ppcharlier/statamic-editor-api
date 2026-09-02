@@ -4,6 +4,42 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.4] — 2026-09-02
+
+### Fixed
+
+- **Every authorization now goes through Statamic's own policies**, finishing what
+  2.0.3 started for entries. Until now the API compared bare permission strings, which
+  diverged from the Control Panel in both directions:
+
+  - *More permissive* on a multi-site install: nothing checked `access {site} site`.
+    A user confined to one site could read, list, create or localize entries, edit
+    globals, read navigation trees and create terms in the other sites. Every site
+    resolved from `?site=` (or the localization payload) is now checked against
+    `SitePolicy`, as the CP's site switcher does, and each per-site policy re-checks it.
+    Single-site installs are unaffected.
+  - *Stricter* than the CP: `configure collections`, `configure globals`,
+    `configure navs`, `configure taxonomies`, `configure forms` and
+    `configure asset containers` open their whole area in the CP (the policies'
+    `before()` hook) but were 403 here. Likewise `edit … entries` implies `view` in the
+    CP but not here. Both now match.
+
+  Each endpoint asks exactly what its CP counterpart asks: `view`/`create`/`publish` on
+  the collection or entry, `edit` on the origin entry when localizing, `edit` on the
+  global set's localization, `view`/`edit` on the navigation tree, `view` on the taxonomy
+  and `create`/`update`/`delete` on the term, `view`/`store` on the asset container and
+  `view`/`edit`/`move`/`rename`/`delete` on the asset, `view` on the form and `delete` on
+  the submission. Index endpoints filter with the same `view` policies.
+
+### Changed
+
+- The `403 forbidden` message reads `Not authorized to {ability} this resource.` (or
+  `Not authorized to access site [{handle}].`) instead of naming a permission string.
+- On a single resource, an unknown path or localization is a `404` before the `403`,
+  as in the CP: the policy needs the resource to decide.
+- The route middleware became `editor-api.can:{ability},{routeParam}`; the internal
+  `PermissionMap` class is gone. Neither was part of the HTTP contract.
+
 ## [2.0.3] — 2026-09-02
 
 ### Fixed

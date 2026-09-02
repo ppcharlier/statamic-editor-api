@@ -4,12 +4,13 @@ namespace Ppcharlier\StatamicEditorApi\Http\Terms;
 
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\FieldShape;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
 use Ppcharlier\StatamicEditorApi\Support\SortParam;
 use Ppcharlier\StatamicEditorApi\Support\UnknownFields;
+use Statamic\Contracts\Taxonomies\Term as TermContract;
+use Statamic\Facades\Site;
 use Statamic\Facades\Term;
 use Statamic\Rules\Slug;
 use Statamic\Rules\UniqueTermValue;
@@ -21,8 +22,8 @@ final class TermsController
     public function index(Request $request, $taxonomy)
     {
         $site = SiteResolver::resolve($request, $taxonomy->sites()->all());
-        ResourceGate::taxonomy($handle = $taxonomy->handle());
-        Guard::check($request->user(), PermissionMap::terms('view', $handle));
+        ResourceGate::taxonomy($taxonomy->handle());
+        Guard::authorize($request->user(), 'view', $taxonomy);
 
         $params = $request->validate([
             'search' => ['sometimes', 'string', 'max:200'],
@@ -61,7 +62,7 @@ final class TermsController
     {
         $site = SiteResolver::resolve($request, $taxonomy->sites()->all());
         ResourceGate::taxonomy($handle = $taxonomy->handle());
-        Guard::check($request->user(), PermissionMap::terms('create', $handle));
+        Guard::authorize($request->user(), 'create', [TermContract::class, $taxonomy, Site::get($site)]);
 
         $payload = $request->validate([
             'slug' => ['required', 'string', new Slug, new UniqueTermValue(taxonomy: $handle, site: $site)],
@@ -118,9 +119,9 @@ final class TermsController
     {
         $site = SiteResolver::resolve($request, $taxonomy->sites()->all());
         ResourceGate::taxonomy($handle = $taxonomy->handle());
-        Guard::check($request->user(), PermissionMap::terms('edit', $handle));
 
         $term = $this->findTerm($taxonomy, $slug, $site);
+        Guard::authorize($request->user(), 'update', $term);
 
         // Stache returns the SAME cached PHP object on every lookup within this process.
         // Cloning detaches us from that shared reference so our mutations below (notably
@@ -211,10 +212,10 @@ final class TermsController
         // believes they are deleting one site's version gets a 422 on a bad handle instead
         // of a 204 that wiped every site.
         SiteResolver::resolve($request, $taxonomy->sites()->all());
-        ResourceGate::taxonomy($handle = $taxonomy->handle());
-        Guard::check($request->user(), PermissionMap::terms('delete', $handle));
+        ResourceGate::taxonomy($taxonomy->handle());
 
         $term = $this->findTerm($taxonomy, $slug);
+        Guard::authorize($request->user(), 'delete', $term);
 
         Term::delete($term->term());
 

@@ -27,7 +27,7 @@ it('allows a super admin', function () {
 });
 
 it('allows a user holding the mapped permission', function () {
-    Role::make('editor')->permissions(['edit articles entries'])->save();
+    Role::make('editor')->permissions(['view articles entries'])->save();
     $user = tap(User::make()->email('writer@example.com')->assignRole('editor'))->save();
 
     $this->withToken(tokenFor($user))->getJson('/api/editor/v1/_guarded/articles')->assertOk();

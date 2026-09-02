@@ -5,7 +5,6 @@ namespace Ppcharlier\StatamicEditorApi\Http\Navigations;
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
-use Ppcharlier\StatamicEditorApi\Permissions\PermissionMap;
 use Ppcharlier\StatamicEditorApi\Support\ResourceConfig;
 use Ppcharlier\StatamicEditorApi\Support\ResourceGate;
 use Ppcharlier\StatamicEditorApi\Support\SiteResolver;
@@ -19,8 +18,7 @@ final class NavigationsController
 
         $navs = Nav::all()
             ->filter(fn ($nav) => ResourceConfig::enabled('navigations', $nav->handle()))
-            ->filter(fn ($nav) => Guard::allows($user, PermissionMap::navs('view', $nav->handle()))
-                || Guard::allows($user, PermissionMap::navs('edit', $nav->handle())))
+            ->filter(fn ($nav) => Guard::allows($user, 'view', $nav))
             ->map(fn ($nav) => ['handle' => $nav->handle(), 'title' => $nav->title()])
             ->values()->all();
 
@@ -30,7 +28,7 @@ final class NavigationsController
     public function show(Request $request, string $handle)
     {
         [$nav, $tree] = $this->resolve($request, $handle);
-        $this->guardView($request, $handle);
+        Guard::authorize($request->user(), 'view', $tree);
 
         return response()->json(['data' => $this->payload($nav, $tree)]);
     }
@@ -38,7 +36,7 @@ final class NavigationsController
     public function update(Request $request, string $handle)
     {
         [$nav, $tree, $site] = $this->resolve($request, $handle);
-        Guard::check($request->user(), PermissionMap::navs('edit', $handle));
+        Guard::authorize($request->user(), 'edit', $tree);
 
         $payload = $request->validate(['tree' => ['present', 'array']]);
 
@@ -93,18 +91,6 @@ final class NavigationsController
         }
 
         return [$nav, $tree, $site];
-    }
-
-    private function guardView(Request $request, string $handle): void
-    {
-        $user = $request->user();
-
-        if (Guard::allows($user, PermissionMap::navs('view', $handle))
-            || Guard::allows($user, PermissionMap::navs('edit', $handle))) {
-            return;
-        }
-
-        throw new ApiException('forbidden', 'Missing permission: '.PermissionMap::navs('view', $handle).'.', 403);
     }
 
     private function payload($nav, $tree): array

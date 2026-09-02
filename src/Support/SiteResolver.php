@@ -18,7 +18,7 @@ final class SiteResolver
         $site = $request->query('site');
 
         if ($site === null) {
-            return self::resolveValue(self::defaultFor($allowed), $allowed);
+            return self::resolveValue(self::defaultFor($allowed), $allowed, null, $request->user());
         }
 
         // `?site[]=en&site[]=fr` hands us an array; reject it before string interpolation
@@ -27,7 +27,7 @@ final class SiteResolver
             throw self::invalid('The site parameter must be a single handle.');
         }
 
-        return self::resolveValue($site, $allowed);
+        return self::resolveValue($site, $allowed, null, $request->user());
     }
 
     /**
@@ -35,8 +35,12 @@ final class SiteResolver
      * request BODY value for the one endpoint that takes the site as payload
      * (POST /entries/{id}/localizations). $message overrides the failure text so each
      * caller keeps its own wording.
+     *
+     * With a $user, the site must also be one they may access: the Control Panel's site
+     * switcher enforces `access {site} site` (SitePolicy) before anything else, so an
+     * unreachable site is a 403 here too — after the 422s, so a bad handle stays a bad handle.
      */
-    public static function resolveValue(string $site, ?array $allowed = null, ?string $message = null): string
+    public static function resolveValue(string $site, ?array $allowed = null, ?string $message = null, $user = null): string
     {
         if (! Site::all()->map->handle()->contains($site)) {
             throw self::invalid($message ?? "Unknown site [{$site}].");
@@ -44,6 +48,10 @@ final class SiteResolver
 
         if ($allowed !== null && ! in_array($site, $allowed, true)) {
             throw self::invalid($message ?? "This resource is not available in site [{$site}].");
+        }
+
+        if ($user && ! $user->can('view', Site::get($site))) {
+            throw new ApiException('forbidden', "Not authorized to access site [{$site}].", 403);
         }
 
         return $site;
