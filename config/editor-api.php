@@ -16,6 +16,11 @@ return [
         'api_per_ip' => 480, // plafond par IP (bloque la rotation de bearers-poubelle)
     ],
 
+    // false = comportement du Control Panel : tout le monde voit (et lit) toutes les entrées,
+    // colonne auteur comprise. true = les deux permissions « Editor API » par collection
+    // décident : « list other authors ... entries » et « view other authors of ... entries ».
+    'enforce_author_visibility' => false,
+
     // true = tous les handles, ['a', 'b'] = liste blanche, false = désactivé
     'resources' => [
         'collections' => true,

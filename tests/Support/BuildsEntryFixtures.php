@@ -38,6 +38,11 @@ trait BuildsEntryFixtures
         return app(TokenRepository::class)->create($user->id(), 'iPhone')->plainText;
     }
 
+    protected function tokenFor($user): string
+    {
+        return app(TokenRepository::class)->create($user->id(), 'iPhone')->plainText;
+    }
+
     protected function makeTokenWithPermissions(array $permissions): string
     {
         $handle = 'role_'.uniqid();

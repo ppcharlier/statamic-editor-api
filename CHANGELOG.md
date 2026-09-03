@@ -4,6 +4,33 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] — 2026-09-03
+
+### Added
+
+- **Two optional permissions to hide other authors' entries** — `editor-api list other
+  authors {collection} entries` and its child `editor-api view other authors of
+  {collection} entries`, both per collection, in the role editor's "Editor API" group.
+  They go deliberately BELOW Control Panel parity: the CP lists every entry with its
+  author to anyone who may view the collection, and only writing takes an "other authors"
+  permission. A mobile editor often needs stricter, so this is now a site's choice.
+
+  Without the first, a listing is narrowed in the query (`meta.total` counts what the user
+  sees) and any entry-by-id route — read, revisions, localizations, publishing — answers
+  `404 not_found` rather than confirming the entry exists. Without the second,
+  `author.name` comes back `null` while `author.id` stays, so a client can still tell
+  "somebody else's" from "no author".
+
+  Super users, collections whose blueprint has no `author` field, and roles holding
+  `edit other authors {collection} entries` are never restricted — whoever may edit
+  another author's entry already sees it in the CP.
+
+- **`enforce_author_visibility` config key**, default `false`. Off, nothing changes and
+  the permissions lie dormant; the key is read with a fallback, so an installation whose
+  published config file predates it behaves exactly as before after an update. The
+  permissions are registered either way, so a `roles.yaml` never carries a handle that
+  only exists when a config file says so.
+
 ## [2.1.1] — 2026-09-02
 
 ### Fixed
