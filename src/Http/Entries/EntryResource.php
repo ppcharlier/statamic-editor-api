@@ -4,6 +4,7 @@ namespace Ppcharlier\StatamicEditorApi\Http\Entries;
 
 use Carbon\CarbonInterface;
 use Illuminate\Support\Arr;
+use Ppcharlier\StatamicEditorApi\Permissions\AuthorVisibility;
 use Ppcharlier\StatamicEditorApi\Permissions\Capabilities;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Statamic\Facades\Blink;
@@ -43,7 +44,26 @@ final class EntryResource
         $id = $entry->authors()->first();
         $user = $id ? User::find($id) : null;
 
-        return $user ? ['id' => (string) $user->id(), 'name' => $user->name()] : null;
+        if (! $user) {
+            return null;
+        }
+
+        // The id always stays: it is what lets a client tell "somebody else's" from "no
+        // author", and so word a read-only mention. Only the name is withheld.
+        $name = self::mayName($entry, $user) ? $user->name() : null;
+
+        return ['id' => (string) $user->id(), 'name' => $name];
+    }
+
+    private static function mayName($entry, $user): bool
+    {
+        $viewer = request()->user();
+
+        if (! $viewer || $viewer->id() === $user->id()) {
+            return true;
+        }
+
+        return AuthorVisibility::identifiesOtherAuthors($viewer, $entry->collection());
     }
 
     public static function detail($entry): array

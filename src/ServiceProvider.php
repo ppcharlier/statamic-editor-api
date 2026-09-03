@@ -16,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiError;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 use Ppcharlier\StatamicEditorApi\Permissions\ApiAccess;
+use Ppcharlier\StatamicEditorApi\Permissions\AuthorVisibility;
+use Statamic\Facades\Collection;
 use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -61,6 +63,22 @@ class ServiceProvider extends AddonServiceProvider
         Permission::extend(function () {
             Permission::group('editor-api', 'Editor API', function () {
                 Permission::register(ApiAccess::PERMISSION)->label('Access the Editor API');
+
+                // Registered whatever `enforce_author_visibility` says: permissions that
+                // appeared and vanished with a config file would make a roles.yaml
+                // unreadable. The labels say when they bite.
+                Permission::register(AuthorVisibility::LIST, function ($permission) {
+                    $permission
+                        ->label('List other authors\' entries (when author visibility is enforced)')
+                        ->children([
+                            Permission::make(AuthorVisibility::IDENTIFY)
+                                ->label('See who wrote them'),
+                        ])
+                        ->replacements('collection', fn () => Collection::all()->map(fn ($collection) => [
+                            'value' => $collection->handle(),
+                            'label' => __($collection->title()),
+                        ]));
+                });
             });
         });
 

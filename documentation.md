@@ -75,6 +75,9 @@ return [
         'api_per_ip' => 480,  // per-IP ceiling, on top of the per-token limit
     ],
 
+    // false = Control Panel behaviour: everyone sees every entry, author included
+    'enforce_author_visibility' => false,
+
     // true = every handle, ['a', 'b'] = allow-list, false = disabled
     'resources' => [
         'collections' => true,
@@ -93,6 +96,12 @@ value that is `/api/editor/v1`.
 
 **`resources`** — a disabled or non-allow-listed handle is reported as `404 not_found`,
 never as a `403`: a client that may not touch a resource cannot tell it exists.
+
+**`enforce_author_visibility`** — off by default, in which case the API shows what the
+Control Panel shows. Turned on, the two per-collection permissions described under
+[Permissions](#hiding-other-authors-entries) decide who sees other authors' entries and
+who may know their names. The key is read with a fallback, so an installation whose
+published config file predates it keeps its behaviour after an update.
 
 > ⚠️ Deployments that persist `storage/` on a separate volume (Fly.io, Docker with a
 > named volume, …) must persist `storage/statamic/editor-api/tokens` too, or every
@@ -224,7 +233,9 @@ user may not do instead of discovering it through a `403`.
 Entries also carry `author` — the first user of the blueprint's `author` field as
 `{ "id", "name" }` (display name only, never the email), or `null` when the blueprint
 has no such field — so a list can show whose entry it is next to what the user may do
-with it.
+with it. `name` is `null` when the reader may not know who the other author is (see
+[Hiding other authors' entries](#hiding-other-authors-entries)); the `id` always stays,
+so a client can still tell "somebody else's" from "no author".
 ### Pagination
 
 `?page=` and `?per_page=` (1–100, default 25) on every list endpoint.
@@ -400,6 +411,33 @@ unknown path or localization is a `404` before any `403`.
 
 Index endpoints (`/globals`, `/navigations`, `/taxonomies`, `/forms`) list only
 what the user may see, so a client can build its navigation from them directly.
+
+### Hiding other authors' entries
+
+The Control Panel lists every entry of a collection — author column included — to anyone
+who may view it; only *writing* to somebody else's entry takes an "other authors"
+permission. A mobile editor is often expected to be stricter than that, so the addon can
+go below CP parity, and only on purpose: set `enforce_author_visibility` to `true` in
+`config/statamic/editor-api.php`.
+
+Two per-collection permissions then apply, listed under "Editor API" in the role editor.
+They are registered whatever the setting says, so a `roles.yaml` stays readable:
+
+| Permission | Grants |
+| --- | --- |
+| `editor-api list other authors {collection} entries` | seeing entries written by somebody else |
+| `editor-api view other authors of {collection} entries` | knowing who wrote them |
+
+Without the first one, a listing is narrowed **in the query** — `meta.total` counts what
+the user can actually see — and reading such an entry by id answers `404 not_found`, the
+same way a disabled resource does: an entry kept out of your listing has no business
+being confirmed to exist. That covers its revisions, its localizations and publishing
+alike. Without the second, `author.name` comes back `null` while `author.id` stays.
+
+Three cases are never restricted, whatever the setting: super users, collections whose
+blueprint has no `author` field (nothing owns anything there), and roles holding
+`edit other authors {collection} entries` — whoever may edit another author's entry
+already sees it in the CP, and hiding it in the app would break every editor role.
 
 ---
 

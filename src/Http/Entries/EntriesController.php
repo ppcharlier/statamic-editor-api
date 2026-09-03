@@ -4,6 +4,7 @@ namespace Ppcharlier\StatamicEditorApi\Http\Entries;
 
 use Illuminate\Http\Request;
 use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
+use Ppcharlier\StatamicEditorApi\Permissions\AuthorVisibility;
 use Ppcharlier\StatamicEditorApi\Permissions\Guard;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
 use Ppcharlier\StatamicEditorApi\Support\FieldShape;
@@ -35,6 +36,10 @@ final class EntriesController
 
         $query = Entry::query()->where('collection', $collection->handle())->where('site', $site);
         $query->whereStatus($params['status'] ?? 'any');
+
+        if (! AuthorVisibility::listsOtherAuthors($request->user(), $collection)) {
+            AuthorVisibility::constrainToOwn($query, $request->user());
+        }
 
         if ($search = $params['search'] ?? null) {
             $query->where('title', 'like', '%'.$search.'%');
