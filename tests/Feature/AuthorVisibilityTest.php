@@ -167,3 +167,14 @@ it('registers both permissions for the CP roles editor', function () {
     expect($values)->toContain('editor-api list other authors articles entries')
         ->and($values)->toContain('editor-api view other authors of articles entries');
 });
+
+it('names the collection in every permission label', function () {
+    // Registered per collection, so the roles editor draws one row per collection: without
+    // the :collection placeholder Statamic replaces, they all read the same and an admin
+    // cannot tell which one they are ticking.
+    $group = collect(Permission::boot()->tree())->firstWhere('handle', 'editor-api');
+    $listing = collect($group['permissions'])->firstWhere('value', 'editor-api list other authors articles entries');
+
+    expect($listing['label'])->toContain('Articles')
+        ->and($listing['children'][0]['label'])->toContain('Articles');
+});

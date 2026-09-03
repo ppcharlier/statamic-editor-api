@@ -67,12 +67,17 @@ class ServiceProvider extends AddonServiceProvider
                 // Registered whatever `enforce_author_visibility` says: permissions that
                 // appeared and vanished with a config file would make a roles.yaml
                 // unreadable. The labels say when they bite.
+                // `:collection` is what Statamic swaps for each collection's title when it
+                // draws the label (Permission::label()). Without it the roles editor shows
+                // one identical row per collection and nobody can tell them apart.
                 Permission::register(AuthorVisibility::LIST, function ($permission) {
                     $permission
-                        ->label('List other authors\' entries (when author visibility is enforced)')
+                        ->label('List other authors\' :collection entries (when enforced)')
+                        ->description('Only bites while enforce_author_visibility is on in the Editor API config.')
                         ->children([
                             Permission::make(AuthorVisibility::IDENTIFY)
-                                ->label('See who wrote them'),
+                                ->label('See who wrote other authors\' :collection entries')
+                                ->description('Otherwise their entries come back without an author name.'),
                         ])
                         ->replacements('collection', fn () => Collection::all()->map(fn ($collection) => [
                             'value' => $collection->handle(),
