@@ -439,6 +439,13 @@ blueprint has no `author` field (nothing owns anything there), and roles holding
 `edit other authors {collection} entries` — whoever may edit another author's entry
 already sees it in the CP, and hiding it in the app would break every editor role.
 
+> ⚠️ A collection with no blueprint of its own falls back to
+> `resources/blueprints/default.yaml`, which Statamic ships **with an `author` field**.
+> Such a collection counts as owned, and entries created before that field existed have
+> no author at all — which Statamic reads as somebody else's. Turning the setting on
+> without granting the pair on those collections empties their listings. Check
+> `Collection::findByHandle('…')->entryBlueprint()->hasField('author')` before enabling.
+
 ---
 
 ## Endpoint reference
