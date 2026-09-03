@@ -545,6 +545,10 @@ Summary shape:
 | `message` | max 500, recorded in history when revisions are on |
 | `data` | required object of blueprint values |
 
+When the blueprint has an `author` field and `data` omits it, the entry is created with
+the current user as author — what the CP does through `default: current` — so a writer
+never ends up locked out of an entry they just created.
+
 Returns `201` with the detail payload.
 
 **Update** (`PATCH`): `slug` and `date` optional, `data` required (it is a full

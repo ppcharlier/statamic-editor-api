@@ -4,6 +4,18 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.1] — 2026-09-02
+
+### Fixed
+
+- **An entry created without `author` was born ownerless.** The CP fills a `users` field
+  declared `default: current` with the signed-in user when the form opens; the API applied
+  no blueprint default, and `EntryPolicy` treats an entry with no author as someone
+  else's — so a writer creating from the app was immediately refused on their own entry.
+  `POST /collections/{collection}/entries` now defaults `author` to the current user
+  whenever the blueprint has that field and the payload omits it. An explicit value is
+  kept as sent; blueprints without an `author` field are untouched.
+
 ## [2.1.0] — 2026-09-02
 
 ### Added
