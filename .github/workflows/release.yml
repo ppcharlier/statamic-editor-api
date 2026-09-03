@@ -1,0 +1,53 @@
+name: release
+
+# The Statamic Marketplace reads the body of a GitHub Release — not the tags,
+# not Packagist, not CHANGELOG.md. Tagging alone leaves a listing that says
+# "Changelog not available", so every tag gets its Release made here.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish the GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Take the release notes from CHANGELOG.md
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if scripts/changelog-section.sh "$version" > release-notes.md; then
+            echo "source=changelog" >> "$GITHUB_OUTPUT"
+          else
+            # An unchangelogged tag would otherwise publish empty notes, which is
+            # precisely what the Marketplace renders as "Changelog not available".
+            # GitHub's generated commit list is thin, but it is not nothing.
+            echo "::warning::CHANGELOG.md has no section for $version — falling back to generated notes"
+            echo "source=generated" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.notes.outputs.version }}
+          SOURCE: ${{ steps.notes.outputs.source }}
+        run: |
+          if [ "$SOURCE" = "changelog" ]; then
+            notes=(--notes-file release-notes.md)
+          else
+            notes=(--generate-notes)
+          fi
+
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$VERSION" \
+            --verify-tag \
+            "${notes[@]}"
