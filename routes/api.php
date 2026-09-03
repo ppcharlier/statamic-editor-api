@@ -10,6 +10,7 @@ use Ppcharlier\StatamicEditorApi\Http\Entries\LocalizationsController;
 use Ppcharlier\StatamicEditorApi\Http\Errors\NotFoundController;
 use Ppcharlier\StatamicEditorApi\Http\Forms\FormsController;
 use Ppcharlier\StatamicEditorApi\Http\Navigations\NavigationsController;
+use Ppcharlier\StatamicEditorApi\Http\Templates\TemplatesController;
 use Ppcharlier\StatamicEditorApi\Http\Terms\TaxonomiesController;
 use Ppcharlier\StatamicEditorApi\Http\Terms\TermsController;
 
@@ -23,6 +24,8 @@ Route::middleware(['editor-api.auth', 'throttle:editor-api'])->group(function ()
     Route::get('config', ConfigController::class)->name('config');
 
     Route::get('me', MeController::class)->name('me');
+
+    Route::get('templates', TemplatesController::class)->name('templates');
 
     Route::get('collections/{collection}/blueprints', [BlueprintsController::class, 'index'])
         ->middleware('editor-api.can:view,collection')->name('blueprints.index');

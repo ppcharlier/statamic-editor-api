@@ -4,6 +4,14 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] — 2026-09-04
+
+### Added
+
+- **`GET /templates`** — the site's views as template names (`articles/index`), the
+  option list a client needs to edit a `template` field. Same discovery rule as the
+  Control Panel; filtering (`errors/`, partials, `folder`) stays client-side, as in the CP.
+
 ## [2.2.1] — 2026-09-03
 
 ### Fixed

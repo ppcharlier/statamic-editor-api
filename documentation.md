@@ -541,6 +541,20 @@ blueprint — enough to render a form, without the CP's internal payload:
 `meta: true` marks a handle exposed as a top-level parameter — see
 [`data` vs top-level parameters](#data-vs-top-level-parameters).
 
+### Templates
+
+**`GET /templates`** — every view of the site as a template name, for a `template`
+field's option list. Path relative to each configured view path, everything before the
+first dot, dotfiles skipped, sorted:
+
+```json
+{ "data": ["articles/index", "default", "errors/404", "layout", "partials/_nav"] }
+```
+
+Nothing is filtered server-side: `errors/`, partials (`partials/` or a leading
+underscore) and the field's `folder` restriction are the client's job, applied exactly
+as the Control Panel's template fieldtype does. The saved value is always the full name.
+
 ### Entries
 
 | Method | Path |
