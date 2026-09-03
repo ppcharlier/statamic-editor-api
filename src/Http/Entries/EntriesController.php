@@ -93,6 +93,15 @@ final class EntriesController
         $blueprint = $collection->entryBlueprint();
         $this->rejectUnknownFields($payload['data'], $blueprint);
 
+        // CP parity for ownership: a `users` field declared `default: current` is filled with
+        // the signed-in user when the CP form opens. The API applies no blueprint defaults, and
+        // EntryPolicy treats an entry with NO author as someone else's — so a client omitting
+        // `author` would lock its own creator out. Default it to the current user, on the
+        // field Statamic's policy actually reads (`author`), whatever the field's `default`.
+        if ($blueprint->hasField('author') && ! array_key_exists('author', $payload['data'])) {
+            $payload['data']['author'] = $request->user()->id();
+        }
+
         // The blueprint always carries ensured 'slug' and, for dated collections,
         // 'date' fields (see Statamic\Entries\Collection::ensureEntryBlueprintFields()).
         // Both are exposed by this API as their own top-level params rather than inside
