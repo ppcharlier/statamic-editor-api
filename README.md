@@ -33,8 +33,16 @@ That's what this addon is.
   publishing is an explicit action with its own endpoint and message.
 - **Revisions & working copies.** Full history and semantic restore, when
   revisions are enabled on the collection.
-- **Your permissions, untouched.** Tokens are tied to real Statamic users and
-  their native roles and permissions. Nothing to duplicate, nothing to drift.
+- **Your permissions, untouched.** Tokens are tied to real Statamic users, and
+  every request is authorized by Statamic's own policies — the same verdict the
+  CP gives, site access and "other authors" rules included. One extra permission,
+  `access editor-api`, decides who may use the API at all.
+- **Clients know what they may do.** Every payload carries a `can` block
+  (`edit`, `delete`, `publish`, `upload`, …) and entries carry their `author`,
+  so an app greys out an action instead of discovering a `403`.
+- **Stricter than the CP, if you want.** Two optional per-collection permissions
+  hide other authors' entries — or just their names — from an editor's listings.
+  Off by default, on with one config key.
 - **Byte-faithful Bard.** ProseMirror documents round-trip verbatim — unknown
   node types, custom attributes and whitespace included. What your editor sends
   is exactly what your site stores.
@@ -42,7 +50,8 @@ That's what this addon is.
   can't silently overwrite each other (`409` on a stale base).
 - **The whole surface.** Entries, assets (upload included), taxonomy terms,
   globals, navigations and form submissions — plus blueprints, so clients can
-  render forms dynamically.
+  render forms dynamically: choice options arrive as an ordered list, and
+  `GET /templates` gives a `template` field the site's views.
 - **Multi-site ready.** Localized entries, linked localizations, per-site globals
   and terms.
 
@@ -72,7 +81,9 @@ That's it — the routes are live under `/api/editor/v1`.
 
 ## Quick start
 
-**1. Sign in** with a Statamic user's credentials to get a token:
+**1. Sign in** with a Statamic user's credentials to get a token. A non-super
+user needs the `access editor-api` permission on one of their roles (the
+"Editor API" group in the role editor):
 
 ```bash
 curl -X POST https://example.com/api/editor/v1/auth/tokens \
@@ -116,7 +127,7 @@ All routes live under `/api/editor/v1` (prefix configurable).
 | Area | Endpoints |
 | --- | --- |
 | Auth | `POST /auth/tokens` · `DELETE /auth/tokens/current` · `GET /me` |
-| Discovery | `GET /config` · `GET /collections/{collection}/blueprints[/{blueprint}]` |
+| Discovery | `GET /config` · `GET /collections/{collection}/blueprints[/{blueprint}]` · `GET /templates` |
 | Entries | `GET·POST /collections/{collection}/entries` · `GET·PATCH·DELETE /entries/{id}` |
 | Publishing | `POST·DELETE /entries/{id}/published` |
 | Revisions | `GET /entries/{id}/revisions` · `POST /entries/{id}/revisions/{revision}/restore` |
@@ -133,6 +144,23 @@ exists.
 
 📖 **[Full documentation](documentation.md)** — authentication and token drivers,
 every endpoint with its payloads, error codes, multi-site, permissions.
+
+## Permissions
+
+Nothing to configure: the addon asks Statamic's policies the same questions the
+Control Panel asks. What a user may do in the CP, they may do through the API —
+no more, no less. Two things are specific to the addon:
+
+- **`access editor-api`** — the counterpart of `access cp`. A non-super user
+  must hold it to get a token, and on every request afterwards: revoking it
+  cuts off tokens already issued.
+- **`enforce_author_visibility`** (config, `false` by default) — the CP shows
+  every entry, author included, to anyone who may view a collection. Turn this
+  on and two per-collection permissions, `editor-api list other authors
+  {collection} entries` and `editor-api view other authors of {collection}
+  entries`, decide who sees other authors' entries and who may know their
+  names. Super users and roles that may already *edit* other authors' entries
+  are never restricted.
 
 ## Security
 
