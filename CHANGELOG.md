@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   option list a client needs to edit a `template` field. Same discovery rule as the
   Control Panel; filtering (`errors/`, partials, `folder`) stays client-side, as in the CP.
 
+### Changed
+
+- **Choice options are sent as an ordered `[{value, label}]` list** in the compact
+  blueprint (`select`, `radio`, `checkboxes`, `button_group`, anything on
+  `HasSelectOptions`), in blueprint order and whatever the blueprint file's form. A
+  `{value: label}` JSON object loses its key order in most decoders — the iOS app showed
+  a Left/Center/Right button group as Center/Right/Left.
+
 ## [2.2.1] — 2026-09-03
 
 ### Fixed

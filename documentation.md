@@ -257,6 +257,15 @@ payload so a form renderer can skip them, and sending them inside `data` is a
 
 `published` is also refused inside `PATCH`: publishing has its own endpoints.
 
+### Choice options
+
+For the choice fieldtypes (`select`, `radio`, `checkboxes`, `button_group`, and any other
+built on Statamic's `HasSelectOptions`), `config.options` is always the ordered list
+`[{"value": "…", "label": "…"}]` in blueprint order — the same list the Control Panel
+preloads — whatever form the blueprint file used (`{value: label}` map or plain `[value…]`
+array). JSON objects carry no reliable key order once decoded, a list does. Introduced in
+2.3.0; earlier servers send the config verbatim.
+
 ### Unknown fields
 
 Any key in `data` that is not in the blueprint is rejected with

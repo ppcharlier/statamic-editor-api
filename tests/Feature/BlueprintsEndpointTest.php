@@ -74,3 +74,37 @@ it('403s a user without view permission', function () {
         ->assertStatus(403)
         ->assertJson(['error' => ['code' => 'forbidden']]);
 });
+
+it('serializes choice options as an ordered value/label list', function () {
+    // Foundation on iOS does not preserve JSON object key order, so `{key: label}` options
+    // reach the client shuffled. The compact form sends them as the ordered list Statamic's
+    // own `HasSelectOptions::preload()` builds — for every choice fieldtype, and for the
+    // plain `[value…]` form too. Other config keys stay verbatim.
+    \Statamic\Facades\Blueprint::make('choices')
+        ->setNamespace('collections.articles')
+        ->setContents(['tabs' => ['main' => ['sections' => [['fields' => [
+            ['handle' => 'align', 'field' => ['type' => 'button_group', 'display' => 'Align', 'options' => ['gauche' => 'Gauche', 'centre' => 'Centre', 'droite' => 'Droite']]],
+            ['handle' => 'tone', 'field' => ['type' => 'select', 'display' => 'Tone', 'multiple' => true, 'options' => ['zen', 'vif']]],
+            ['handle' => 'mood', 'field' => ['type' => 'radio', 'display' => 'Mood', 'options' => ['b' => 'B', 'a' => 'A']]],
+            ['handle' => 'tags', 'field' => ['type' => 'checkboxes', 'display' => 'Tags', 'options' => ['y' => 'Y', 'x' => 'X']]],
+        ]]]]]])
+        ->save();
+
+    $fields = collect($this->withToken($this->makeSuperToken())
+        ->getJson('/api/editor/v1/collections/articles/blueprints/choices')
+        ->assertOk()
+        ->json('data.tabs.0.fields'))->keyBy('handle');
+
+    expect($fields['align']['config']['options'])->toBe([
+        ['value' => 'gauche', 'label' => 'Gauche'],
+        ['value' => 'centre', 'label' => 'Centre'],
+        ['value' => 'droite', 'label' => 'Droite'],
+    ])
+        ->and($fields['tone']['config']['options'])->toBe([
+            ['value' => 'zen', 'label' => 'zen'],
+            ['value' => 'vif', 'label' => 'vif'],
+        ])
+        ->and($fields['tone']['config']['multiple'])->toBeTrue()
+        ->and($fields['mood']['config']['options'])->toBe([['value' => 'b', 'label' => 'B'], ['value' => 'a', 'label' => 'A']])
+        ->and($fields['tags']['config']['options'])->toBe([['value' => 'y', 'label' => 'Y'], ['value' => 'x', 'label' => 'X']]);
+});

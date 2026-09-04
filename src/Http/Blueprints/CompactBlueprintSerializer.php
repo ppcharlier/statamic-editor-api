@@ -4,6 +4,7 @@ namespace Ppcharlier\StatamicEditorApi\Http\Blueprints;
 
 use Illuminate\Support\Arr;
 use Ppcharlier\StatamicEditorApi\Support\MetaFields;
+use Statamic\Fieldtypes\HasSelectOptions;
 
 final class CompactBlueprintSerializer
 {
@@ -30,6 +31,16 @@ final class CompactBlueprintSerializer
     private static function field($field): array
     {
         $config = $field->config();
+
+        // Choice fieldtypes (select, radio, checkboxes, button_group…) keep their options as
+        // a `{value: label}` map, whose order is the blueprint's — and JSON object key order
+        // is exactly what Foundation on iOS does NOT preserve when decoding. Send the ordered
+        // `[{value, label}]` list Statamic itself builds for the CP (`preload()`), for the
+        // plain `[value…]` form too. Every other config key stays verbatim.
+        $fieldtype = $field->fieldtype();
+        if (in_array(HasSelectOptions::class, class_uses_recursive($fieldtype), true)) {
+            $config['options'] = $fieldtype->preload()['options'] ?? [];
+        }
 
         return [
             'handle' => $field->handle(),
