@@ -7,7 +7,7 @@ use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
 /**
  * Reconciles what Statamic STORES with what its fieldtypes CONSUME on write.
  *
- * Two fieldtype families store one shape and accept another, because the Control Panel's
+ * Three fieldtype families store one shape and accept another, because the Control Panel's
  * JavaScript submits the richer one and process() narrows it down on the way to disk:
  *
  * - `assets` stores bare paths — a scalar rather than an array when `max_files` is 1 — but
@@ -19,13 +19,18 @@ use Ppcharlier\StatamicEditorApi\Http\Errors\ApiException;
  *   not from the value, "must not have more than 1 items" on a string of two characters or more.
  *   Worse, process() would then read `$value[0]` off that string and store its first letter.
  *
+ * - `date` stores a wall-clock string in the site's timezone (`Y-m-d H:i` by default) but, when
+ *   the format carries a time, validates against the Zulu ISO string the Control Panel submits
+ *   (Statamic\Rules\DateFieldtype) — see date() below.
+ *
  * This API exposes stored data verbatim, so a client echoing back what GET returned — the iOS
  * app resending an untouched field while changing the slug — was rejected on a field it never
  * edited. Running those fieldtypes' own preProcess(), and only theirs, makes the stored shape
  * acceptable while leaving the verbatim round-trip of Bard and everything else untouched.
  *
- * Both are idempotent for Control-Panel-shaped input: Arr::wrap() leaves arrays alone, terms'
- * single-taxonomy prefixing and assets' valueToId() pass anything containing '::' through.
+ * All three are idempotent for Control-Panel-shaped input: Arr::wrap() leaves arrays alone, terms'
+ * single-taxonomy prefixing and assets' valueToId() pass anything containing '::' through, and
+ * Date::preProcess() re-emits a Zulu string unchanged.
  *
  * Nested fields need the same treatment — a relationship inside a Grid row is validated as
  * `blocs.0.serie` and fails identically — so the walk descends into the containers whose stored
@@ -64,6 +69,10 @@ final class FieldShape
 
         if ($fieldtype->isRelationship()) {
             return $fieldtype->preProcess($value);
+        }
+
+        if ($field->type() === 'date') {
+            return self::date($fieldtype, $value);
         }
 
         if (! is_array($value)) {
@@ -117,6 +126,26 @@ final class FieldShape
         }
 
         return $nodes;
+    }
+
+    /**
+     * `date` stores the wall-clock string of its `format` (`Y-m-d H:i` by default) in the site's
+     * timezone, but Statamic\Rules\DateFieldtype validates a field with time against the Zulu
+     * ISO string the Control Panel submits (`Y-m-d\TH:i:s.v\Z`) — the exact shape
+     * Date::preProcess() produces, and Date::process() converts back to the stored format in the
+     * site's timezone. Running preProcess() is therefore both idempotent for Control-Panel-shaped
+     * input and lossless for the stored one. A value Carbon cannot read is left untouched so that
+     * Statamic's own rule answers 422 « Not a valid date. » rather than this walk crashing.
+     *
+     * @param  \Statamic\Fieldtypes\Date  $fieldtype
+     */
+    private static function date($fieldtype, $value)
+    {
+        try {
+            return $fieldtype->preProcess($value);
+        } catch (\Throwable) {
+            return $value;
+        }
     }
 
     /** @param  \Statamic\Fields\Field  $field */

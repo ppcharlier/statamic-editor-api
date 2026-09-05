@@ -46,6 +46,12 @@ That's what this addon is.
 - **Byte-faithful Bard.** ProseMirror documents round-trip verbatim — unknown
   node types, custom attributes and whitespace included. What your editor sends
   is exactly what your site stores.
+- **Stored shapes are accepted back.** `GET` serves field values exactly as
+  Statamic stores them, and a write may echo them unchanged — including the
+  fieldtypes whose Control Panel submits another shape: single-item assets and
+  relationships, and `date` fields (stored `Y-m-d H:i` in the site's timezone,
+  validated by Statamic 6 against a Zulu ISO string). The addon runs their own
+  `preProcess()` on the way in, so nothing is rejected on a field you did not touch.
 - **Conflict detection.** `X-Base-Modified` guards every write — two editors
   can't silently overwrite each other (`409` on a stale base).
 - **The whole surface.** Entries, assets (upload included), taxonomy terms,
