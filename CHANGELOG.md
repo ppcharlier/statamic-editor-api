@@ -4,6 +4,17 @@ All notable changes to **Editor API** are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.3.1] — 2026-09-05
+
+### Fixed
+
+- **`date` fields could not be written back.** Statamic 6 validates a date field with
+  time against the Zulu ISO string its Control Panel submits, while it stores
+  `Y-m-d H:i` in the site's timezone; a client echoing what `GET` returned — the iOS
+  app resending an untouched field — was rejected « Not a valid date. ». `FieldShape`
+  now runs `Date::preProcess()` on the way in (single and range modes, nested fields
+  included), idempotent for the Zulu shape and lossless for the stored one.
+
 ## [2.3.0] — 2026-09-04
 
 ### Added
